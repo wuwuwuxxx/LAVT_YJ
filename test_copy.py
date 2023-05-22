@@ -44,25 +44,15 @@ def evaluate(model, data_loader, bert_model, device):
 
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
-            image, target, sentences, attentions, sentences_len = data
+            image, target, sentences, attentions = data
             image, target, sentences, attentions = image.to(device), target.to(device), \
                                                    sentences.to(device), attentions.to(device)
-            
-
             sentences = sentences.squeeze(1)
             attentions = attentions.squeeze(1)
             target = target.cpu().data.numpy()
-
-            sentences_len = sentences_len.squeeze(1)
             for j in range(sentences.size(-1)):
                 if bert_model is not None:
                     last_hidden_states = bert_model(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
-                    if args.NCL > 0:
-                        for i in range(sentences_len.size(0)):  
-                            temp_len = sentences_len[i][0][j] + 1
-                            if (temp_len + args.NCL) <= args.max_tokens:
-                            # print(temp_len)
-                                last_hidden_states[i][temp_len: (temp_len + args.NCL)] = model.ctx
                     embedding = last_hidden_states.permute(0, 2, 1)
                     output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1))
                 else:

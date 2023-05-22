@@ -1,0 +1,5 @@
+models/*
+*.pyc
+checkpoints/*
+*.pth
+

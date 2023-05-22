@@ -35,7 +35,7 @@ from matplotlib.patches import Polygon, Rectangle
 from pprint import pprint
 import numpy as np 
 from pycocotools import mask
-
+from PIL import Image
 
 class REFER:
 
@@ -50,6 +50,7 @@ class REFER:
         self.DATA_DIR = osp.join(data_root, dataset)
         if dataset in ['refcoco', 'refcoco+', 'refcocog']:
             self.IMAGE_DIR = osp.join(data_root, 'images/mscoco/images/train2014')
+            self.IMAGE_DIR = '/home/AI-T1/DatasetPublic/robseg/SSeg_datasets/coco/train2017'
         elif dataset == 'refclef':
             self.IMAGE_DIR = osp.join(data_root, 'images/saiapr_tc-12')
         else:
@@ -292,6 +293,30 @@ class REFER:
         return {'mask': m, 'area': area}
 
 
+    def getclsMask(self, ref, ref_mask):
+        
+        image_id = ref['image_id']
+        annos = self.imgToAnns[image_id]
+        cat_id = ref['category_id']
+        image = self.Imgs[ref['image_id']]
+        
+        cls_m = np.zeros(ref_mask.shape)
+        for ann in annos:
+            if ann['category_id'] == cat_id:# and ann['id'] != ref['ann_id']:
+                if  'counts' in ann['segmentation']:
+                    continue
+                if  type(ann['segmentation'][0]) == list:  # polygon
+                    rle = mask.frPyObjects(ann['segmentation'], image['height'], image['width'])
+                else:
+                    rle = ann['segmentation']
+
+                m = mask.decode(rle)
+                m = np.sum(m, axis=2)  # sometimes there are multiple binary map (corresponding to multiple segs)
+                m = m.astype(np.uint8)
+                cls_m[m==1] = 1
+        annot = Image.fromarray(cls_m.astype(np.uint8), mode="P")
+        return annot
+
     def showMask(self, ref):
         M = self.getMask(ref)
         msk = M['mask']
@@ -300,7 +325,9 @@ class REFER:
 
 
 if __name__ == '__main__':
-    refer = REFER(dataset='refcocog', splitBy='google')
+
+    data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
+    refer = REFER(data_root, dataset='refcocog', splitBy='google')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='train')

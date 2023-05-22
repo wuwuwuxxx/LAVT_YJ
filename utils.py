@@ -202,21 +202,130 @@ def save_on_master(*args, **kwargs):
         torch.save(*args, **kwargs)
 
 
-def init_distributed_mode(args):
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        rank = int(os.environ["RANK"])
-        world_size = int(os.environ['WORLD_SIZE'])
-        print(f"RANK and WORLD_SIZE in environment: {rank}/{world_size}")
-    else:
-        rank = -1
-        world_size = -1
+# def init_distributed_mode(args):
+#     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+#         rank = int(os.environ["RANK"])
+#         world_size = int(os.environ['WORLD_SIZE'])
+#         print(f"RANK and WORLD_SIZE in environment: {rank}/{world_size}")
+#     else:
+#         rank = -1
+#         world_size = -1
 
-    torch.cuda.set_device(args.local_rank)
-    torch.distributed.init_process_group(backend='nccl', init_method='env://', world_size=world_size, rank=rank)
+#     torch.cuda.set_device(args.local_rank)
+#     torch.distributed.init_process_group(backend='nccl', init_method='env://', world_size=world_size, rank=rank)
+#     torch.distributed.barrier()
+#     setup_for_distributed(is_main_process())
+
+#     if args.output_dir:
+#         mkdir(args.output_dir)
+#     if args.model_id:
+#         mkdir(os.path.join('./models/', args.model_id))
+
+
+def init_distributed_mode(args):
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
+        args.rank = int(os.environ["RANK"])
+        args.world_size = int(os.environ["WORLD_SIZE"])
+        args.gpu = int(os.environ["LOCAL_RANK"])
+    elif "SLURM_PROCID" in os.environ:
+        args.rank = int(os.environ["SLURM_PROCID"])
+        args.gpu = args.rank % torch.cuda.device_count()
+    elif hasattr(args, "rank"):
+        pass
+    else:
+        print("Not using distributed mode")
+        args.distributed = False
+        return
+
+    args.distributed = True
+
+    torch.cuda.set_device(args.gpu)
+    args.dist_backend = "nccl"
+    print(f"| distributed init (rank {args.rank}): {args.dist_url}", flush=True)
+    
+    torch.distributed.init_process_group(
+        backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank
+    )
     torch.distributed.barrier()
-    setup_for_distributed(is_main_process())
+    setup_for_distributed(args.rank == 0)
 
     if args.output_dir:
         mkdir(args.output_dir)
     if args.model_id:
         mkdir(os.path.join('./models/', args.model_id))
+
+
+# IoU calculation for validation
+def IoU(pred, gt):
+    pred = pred.argmax(1)
+
+    intersection = torch.sum(torch.mul(pred, gt))
+    union = torch.sum(torch.add(pred, gt)) - intersection
+
+    if intersection == 0 or union == 0:
+        iou = 0
+    else:
+        iou = float(intersection) / float(union)
+
+    return iou, intersection, union
+
+
+
+import numpy as np
+
+
+
+def reduce_across_processes(val):
+    if not is_dist_avail_and_initialized():
+        # nothing to sync, but we still convert to tensor for consistency with the distributed case.
+        return torch.tensor(val)
+
+    t = torch.tensor(val, device="cuda")
+    dist.barrier()
+    dist.all_reduce(t)
+    return t
+
+
+class RefIou:
+    def __init__(self):
+        self.cum_I = 0
+        self.cum_U = 0
+        self.eval_seg_iou_list = [.5, .6, .7, .8, .9]
+        self.acc_ious = 0
+        self.seg_correct = np.zeros(len(self.eval_seg_iou_list), dtype=np.int32)
+        self.seg_total = 0
+        
+
+    def update(self, output, target):
+        iou, I, U = IoU(output, target)
+        self.acc_ious += iou
+        self.cum_I += I
+        self.cum_U += U
+        self.seg_total += 1
+        for n_eval_iou in range(len(self.eval_seg_iou_list)):
+            eval_seg_iou = self.eval_seg_iou_list[n_eval_iou]
+            self.seg_correct[n_eval_iou] += (iou >= eval_seg_iou)
+        
+    
+    def reduce_from_all_processes(self):
+        t = reduce_across_processes([self.acc_ious, self.cum_I, self.cum_U, self.seg_total])
+        self.acc_ious, self.cum_I, self.cum_U, self.seg_total = t
+        self.seg_correct = reduce_across_processes(self.seg_correct)
+        print(self.seg_total)
+
+    def __str__(self):
+        results_str = ''
+        for n_eval_iou in range(len(self.eval_seg_iou_list)):
+            results_str += '    precision@%s = %.2f\n' % \
+                        (str(self.eval_seg_iou_list[n_eval_iou]), self.seg_correct[n_eval_iou] * 100. / self.seg_total)
+
+
+        return ('mean iou {:.2f}\n over iou {: .2f}\n').format(self.acc_ious * 100 / self.seg_total, self.cum_I * 100 / self.cum_U) + results_str
+
+        
+
+
+@torch.no_grad()        
+def _momentum_update(model, model_momentum, momentum): 
+    for param, param_m in zip(model.parameters(), model_momentum.parameters()):
+        param_m.data = param_m.data * momentum + param.data * (1. - momentum)

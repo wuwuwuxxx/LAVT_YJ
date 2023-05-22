@@ -62,6 +62,16 @@ def _segm_lavt(pretrained, args):
     base_model = model_map[1]
 
     model = base_model(backbone, classifier)
+
+
+    if args.NCL > 0:
+        ctx_dim = 2048
+        ctx_vectors = torch.empty(args.NCL, args.ctx_dim)
+        nn.init.normal_(ctx_vectors, std=0.02)
+        model.ctx = nn.Parameter(ctx_vectors)
+    else:
+        model.ctx = None
+
     return model
 
 

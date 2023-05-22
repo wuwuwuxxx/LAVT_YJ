@@ -1,6 +1,6 @@
 image_path = './demo/ADE_val_00000012.jpg'
-sentence = 'the person'
-weights = './checkpoints/model_best_refcoco+_cls_guide_gt_tiny_22.pth'
+sentence = 'the blue woman'
+weights = '/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/model_best_refcoco+_cls_guide_gt_tiny_prompt1/model_best_refcoco+_cls_guide_gt_tiny_prompt1_39.pth'
 device = 'cuda:0'
 
 # pre-process the input image
@@ -26,13 +26,20 @@ img = img.to(device)  # for inference (input)
 from bert.tokenization_bert import BertTokenizer
 import torch
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+max_tokens = 23
+
+
+
+sentence = sentence + ' ' +  ' '.join(["X"] * 1) + ' ' + 'person'
+
 sentence_tokenized = tokenizer.encode(text=sentence, add_special_tokens=True)
-sentence_tokenized = sentence_tokenized[:20]  # if the sentence is longer than 20, then this truncates it to 20 words
+sentence_tokenized = sentence_tokenized[:max_tokens]  # if the sentence is longer than 20, then this truncates it to 20 words
 # pad the tokenized sentence
-padded_sent_toks = [0] * 20
+padded_sent_toks = [0] * max_tokens
 padded_sent_toks[:len(sentence_tokenized)] = sentence_tokenized
 # create a sentence token mask: 1 for real words; 0 for padded tokens
-attention_mask = [0] * 20
+attention_mask = [0] * max_tokens
 attention_mask[:len(sentence_tokenized)] = [1]*len(sentence_tokenized)
 # convert lists to tensors
 padded_sent_toks = torch.tensor(padded_sent_toks).unsqueeze(0)  # (1, 20)
@@ -52,7 +59,8 @@ class args:
     window12 = True
     mha = ''
     fusion_drop = 0.0
-    NCL = 0
+    NCL = 1
+    ctx_dim = 768
 
 
 single_model = segmentation.__dict__['lavt'](pretrained='', args=args)
@@ -71,7 +79,9 @@ bert_model = single_bert_model.to(device)
 # inference
 import torch.nn.functional as F
 last_hidden_states = bert_model(padded_sent_toks, attention_mask=attention_mask)[0]
+last_hidden_states[0][4 : 5] = single_model.ctx
 embedding = last_hidden_states.permute(0, 2, 1)
+
 output = model(img, embedding, l_mask=attention_mask.unsqueeze(-1))
 output = output.argmax(1, keepdim=True)  # (1, 1, 480, 480)
 output = F.interpolate(output.float(), (original_h, original_w))  # 'nearest'; resize to the original image size
