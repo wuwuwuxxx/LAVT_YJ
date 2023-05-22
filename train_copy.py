@@ -82,10 +82,10 @@ def evaluate(model, data_loader, bert_model):
         for data in metric_logger.log_every(data_loader, 100, header):
             total_its += 1
             image, target, sentences, attentions = data
-            image, target, sentences, attentions = image.cuda(non_blocking=True),\
-                                                   target.cuda(non_blocking=True),\
-                                                   sentences.cuda(non_blocking=True),\
-                                                   attentions.cuda(non_blocking=True)
+            image, target, sentences, attentions = image.cuda(),\
+                                                   target.cuda(),\
+                                                   sentences.cuda(),\
+                                                   attentions.cuda()
 
             sentences = sentences.squeeze(1)
             attentions = attentions.squeeze(1)
@@ -135,10 +135,10 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, epoc
     for data in metric_logger.log_every(data_loader, print_freq, header):
         total_its += 1
         image, target, sentences, attentions = data
-        image, target, sentences, attentions = image.cuda(non_blocking=True),\
-                                               target.cuda(non_blocking=True),\
-                                               sentences.cuda(non_blocking=True),\
-                                               attentions.cuda(non_blocking=True)
+        image, target, sentences, attentions = image.cuda(),\
+                                               target.cuda(),\
+                                               sentences.cuda(),\
+                                               attentions.cuda()
 
         sentences = sentences.squeeze(1)
         attentions = attentions.squeeze(1)
@@ -157,18 +157,9 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, epoc
         optimizer.step()
         lr_scheduler.step()
 
-        torch.cuda.synchronize()
         train_loss += loss.item()
         iterations += 1
         metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
-
-        del image, target, sentences, attentions, loss, output, data
-        if bert_model is not None:
-            del last_hidden_states, embedding
-
-        gc.collect()
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
 
 
 def main(args):
