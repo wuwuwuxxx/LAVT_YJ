@@ -265,6 +265,9 @@ def main(args):
     else:
         resume_epoch = -999
 
+
+    checkpoint_dir = os.path.join(args.output_dir, args.model_id)
+    os.makedirs(checkpoint_dir, exist_ok=True)
     # training loops
     for epoch in range(max(0, resume_epoch+1), args.epochs):
         if args.distributed:
@@ -288,8 +291,8 @@ def main(args):
                                 'optimizer': optimizer.state_dict(), 'epoch': epoch, 'args': args,
                                 'lr_scheduler': lr_scheduler.state_dict()}
 
-            utils.save_on_master(dict_to_save, os.path.join(args.output_dir,
-                                                            'model_best_{}_{}.pth'.format(args.model_id, epoch)))
+            utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
+                                                            'model_{}.pth'.format(epoch)))
             # best_oIoU = overallIoU
 
     # summarize

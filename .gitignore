@@ -2,4 +2,4 @@ models/*
 *.pyc
 checkpoints/*
 *.pth
-
+result/*
