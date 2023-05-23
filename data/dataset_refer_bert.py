@@ -79,6 +79,7 @@ class ReferDataset(data.Dataset):
                         sentence_raw = ' '.join(sentence_raw.split(' ')[:self.max_tokens - args.NCL - 2])
                         print(sentence_raw)
                     sentence_raw =  sentence_raw + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + self.classes[ref['category_id']]
+                    el['raw'] = sentence_raw
                 else:
                     sentence_len.append(-1)
                 # print(sentence_raw)
@@ -148,4 +149,4 @@ class ReferDataset(data.Dataset):
             sentence_len = self.sentence_len[index][choice_sent]
 
 
-        return img, target, tensor_embeddings, attention_mask, sentence_len
+        return img, target, tensor_embeddings, attention_mask, sentence_len, index
