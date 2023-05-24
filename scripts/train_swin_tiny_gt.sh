@@ -1,9 +1,8 @@
-$DATASET = refcoco+
-$SWIN_TYPE = tiny
-$METHOD = class_guide_gt
-$NCL = 1
-$LOSS_WEIGHT = 1.0
-
+DATASET=refcoco+
+SWIN_TYPE=tiny
+METHOD=cls_guide_gt
+NCL=1
+LOSS_WEIGHT=5.0
 
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 nohup  python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12346 train_ris.py \
