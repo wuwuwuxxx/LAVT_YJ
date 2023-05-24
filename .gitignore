@@ -3,3 +3,7 @@ models/*
 checkpoints/*
 *.pth
 result/*
+cls.png
+example.png
+demo_result.jpg
+.vscode/*
