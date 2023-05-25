@@ -2,7 +2,7 @@ models/*
 *.pyc
 checkpoints/*
 *.pth
-result/*
+result*/*
 cls.png
 example.png
 demo_result.jpg
