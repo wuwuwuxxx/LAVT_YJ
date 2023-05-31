@@ -105,7 +105,7 @@ def evaluate(model, data_loader, bert_model, ctx=None):
                 else:
                     output = model(image, sentences, l_mask=attentions)
 
-                output = F.interpolate(output, size=(480, 480), mode='bilinear', align_corners=True)
+                # output = F.interpolate(output, size=(480, 480), mode='bilinear', align_corners=True)
 
                 Refiou.update(output.cpu(), target.cpu())
 
