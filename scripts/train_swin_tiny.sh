@@ -36,9 +36,9 @@ BRANCH=extract_subject
 
 
 CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12345 train_ris.py \
-      --loss_weight ${LOSS_WEIGHT} --classifer_lr 1.0 --method ${METHOD} --model lavt --dataset ${DATASET} --model_id ${DATASET}_${SWIN_TYPE}_${METHOD}_prompt${NCL}_loss${LOSS_WEIGHT}_${BRANCH} --splitBy unc --batch-size 8 --lr 0.00005 \
+      --loss_weight ${LOSS_WEIGHT} --classifer_lr 1.0 --method ${METHOD} --model lavt --dataset ${DATASET} --model_id ${DATASET}_${BRANCH}_${SWIN_TYPE}_${METHOD}_prompt${NCL}_loss${LOSS_WEIGHT} --splitBy unc --batch-size 8 --lr 0.00005 \
       --wd 1e-2 --use_new True --swin_type ${SWIN_TYPE} --pretrained_swin_weights /home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/swin_tiny_patch4_window7_224.pth \
-      --NCL ${NCL} --max_tokens ${MAX_TOKENS} --epochs 40 --img_size 480 --resume '' --workers 8  > ./models/${DATASET}/output_${SWIN_TYPE}_${METHOD}_prompt${NCL}_loss${LOSS_WEIGHT}_${BRANCH} 2>&1 &
+      --NCL ${NCL} --max_tokens ${MAX_TOKENS} --epochs 40 --img_size 480 --resume '' --workers 8  > ./models/${DATASET}/output_${BRANCH}_${SWIN_TYPE}_${METHOD}_prompt${NCL}_loss${LOSS_WEIGHT} 2>&1 &
 
 
 
