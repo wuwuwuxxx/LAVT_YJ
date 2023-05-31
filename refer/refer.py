@@ -38,7 +38,7 @@ import numpy as np
 from pycocotools import mask
 from PIL import Image
 
-from .ref_utils import load_nlp, paper,  consistent_with_cls
+
 
 class REFER:
 
@@ -83,6 +83,7 @@ class REFER:
 
         # extract subject
         if save_change:
+            from .ref_utils import load_nlp, paper,  consistent_with_cls
             self.nlp = load_nlp()
             self.saveChangeRef()
 
