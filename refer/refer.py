@@ -23,6 +23,7 @@ showMask   - show mask of the referred object given ref
 """
 
 import sys
+sys.path.append('/home/yajie/doctor/RIS/LAVT-RIS/')
 import os.path as osp
 import json
 import pickle as pickle
@@ -37,9 +38,11 @@ import numpy as np
 from pycocotools import mask
 from PIL import Image
 
+from .ref_utils import load_nlp, paper,  consistent_with_cls
+
 class REFER:
 
-    def __init__(self, data_root, dataset='refcoco', splitBy='unc'):
+    def __init__(self, data_root, dataset='refcoco', splitBy='unc', use_new = True, save_change=False):
         # provide data_root folder which contains refclef, refcoco, refcoco+ and refcocog
         # also provide dataset name and splitBy information
         # e.g., dataset = 'refcoco', splitBy = 'unc'
@@ -59,18 +62,34 @@ class REFER:
 
         # load refs from data/dataset/refs(dataset).json
         tic = time.time()
-        ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')
+        if use_new:
+            ref_file = osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p')
+        else:
+            ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')
+        
         self.data = {}
         self.data['dataset'] = dataset
         f = open(ref_file, 'r')
         self.data['refs'] = pickle.load(open(ref_file, 'rb'))
 
+
+            
         # load annotations from data/dataset/instances.json
         instances_file = osp.join(self.DATA_DIR, 'instances.json')
         instances = json.load(open(instances_file, 'r'))
         self.data['images'] = instances['images']
         self.data['annotations'] = instances['annotations']
         self.data['categories'] = instances['categories']
+
+        # extract subject
+        if save_change:
+            self.nlp = load_nlp()
+            self.saveChangeRef()
+
+            with open(osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p'), 'wb') as f_new:
+                pickle.dump(self.data['refs'], f_new)
+                
+                
 
         # create index
         self.createIndex()
@@ -138,6 +157,46 @@ class REFER:
         self.sentToRef = sentToRef
         self.sentToTokens = sentToTokens
         print('index created.')
+
+
+    def saveChangeRef(self):
+
+        print('save change...')
+        # fetch info from instances
+        Cats = {}
+        for cat in self.data['categories']:
+            Cats[cat['id']] = cat['name']
+
+
+        for ref in self.data['refs']:
+
+            category_id = ref['category_id']
+            # 类别信息
+            cls_name = Cats[category_id]
+            # add mapping of sent
+            for i, sent in enumerate(ref['sentences']):
+                target_info = ' X '
+                sentence = sent['raw']
+                doc = self.nlp(sentence)
+                # 提取到的主语
+                subject = paper(doc)
+                if subject is None:
+                    target_info = target_info + cls_name
+                else:
+                    relation = consistent_with_cls(cls_name, subject.text)
+                    if relation:
+                        target_info = target_info + subject.text
+                    else:
+                        target_info = target_info + cls_name
+                
+                sent['raw'] = sentence + target_info
+            # print(ref['sentences'])
+                
+                
+
+
+
+
 
     def getRefIds(self, image_ids=[], cat_ids=[], ref_ids=[], split=''):
         image_ids = image_ids if type(image_ids) == list else [image_ids]
@@ -327,7 +386,7 @@ class REFER:
 if __name__ == '__main__':
 
     data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
-    refer = REFER(data_root, dataset='refcocog', splitBy='google')
+    refer = REFER(data_root, dataset='refcoco+', splitBy='unc')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='train')

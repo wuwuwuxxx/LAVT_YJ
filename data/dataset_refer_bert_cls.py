@@ -37,7 +37,7 @@ class ReferDataset(data.Dataset):
         self.image_transforms = image_transforms
         self.target_transform = target_transforms
         self.split = split
-        self.refer = REFER(args.refer_data_root, args.dataset, args.splitBy)
+        self.refer = REFER(args.refer_data_root, args.dataset, args.splitBy, args.use_new)
 
         self.classes = self.refer.Cats
 
@@ -76,18 +76,34 @@ class ReferDataset(data.Dataset):
             for i, (el, sent_id) in enumerate(zip(ref['sentences'], ref['sent_ids'])):
 
                 sentence_raw = el['raw']
-                ## add text prompt
-                if args.NCL > 0: 
-                    temp_len = len(self.tokenizer.encode(text=sentence_raw, add_special_tokens=True)) - 2
+                sentence_raw_sent = el['sent']
+                if args.use_new:
+                    # 原sentence长度
+                    temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                    # 找到主语
+                    sub_index = sentence_raw.find(' X ')
+                    subject = sentence_raw[(sub_index + 3):]
+                    # 句子太长对句子进行截取
+                    if temp_len > self.max_tokens :
+                        sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                        temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                     sentence_len.append(temp_len)
-                    if temp_len > self.max_tokens:
-                        print(sentence_raw)
-                        sentence_raw = ' '.join(sentence_raw.split(' ')[:self.max_tokens - args.NCL - 2])
-                        print(sentence_raw)
-                    sentence_raw =  sentence_raw + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + self.classes[ref['category_id']]
+                    # 加上主语
+                    sentence_raw_sent = sentence_raw_sent + ' X ' + subject
+                    sentence_raw = sentence_raw_sent
                 else:
-                    sentence_len.append(-1)
-                # print(sentence_raw)
+                    ## add text prompt
+                    if args.NCL > 0: 
+                        temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                        sentence_len.append(temp_len)
+                        if temp_len > self.max_tokens:
+                            print(sentence_raw)
+                            sentence_raw = ' '.join(sentence_raw.split(' ')[:self.max_tokens - args.NCL - 2])
+                            print(sentence_raw)
+                        sentence_raw =  sentence_raw + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + self.classes[ref['category_id']]
+                    else:
+                        sentence_len.append(-1)
+                    # print(sentence_raw)
 
                 attention_mask = [0] * self.max_tokens
                 padded_input_ids = [0] * self.max_tokens
