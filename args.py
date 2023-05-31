@@ -58,6 +58,7 @@ def get_parser():
     
 
     parser.add_argument('--method', default='cls_guide_gt', type=str, help='method use')
+    parser.add_argument('--use_new', default=True, type=bool, help='method use')
     return parser
 
 
