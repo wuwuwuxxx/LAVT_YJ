@@ -41,7 +41,7 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
                                             sentences.cuda(),\
                                                attentions.cuda()
         target = target.cuda()
-        target = F.interpolate(target.float().unsqueeze(1), size=(int(image.shape[-1] / 4), int(image.shape[-1] / 4)), mode='nearest').long().squeeze()
+        # target = F.interpolate(target.float().unsqueeze(1), size=(int(image.shape[-1] / 4), int(image.shape[-1] / 4)), mode='nearest').long().squeeze()
 
         sentences = sentences.squeeze(1)
         attentions = attentions.squeeze(1)

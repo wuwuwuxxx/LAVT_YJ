@@ -95,6 +95,8 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
             target = target.cpu().data.numpy()
 
             sentences_len = sentences_len.squeeze(1)
+
+            input_shape = image.shape[-2:]
             for j in range(sentences.size(-1)):
                 if bert_model is not None:
                     last_hidden_states = bert_model(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
@@ -106,6 +108,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = model.ctx
                     embedding = last_hidden_states.permute(0, 2, 1)
                     output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1))
+                    output = F.interpolate(output, size=input_shape, mode='bilinear', align_corners=True)
                 else:
                     output = model(image, sentences[:, :, j], l_mask=attentions[:, :, j])
 
