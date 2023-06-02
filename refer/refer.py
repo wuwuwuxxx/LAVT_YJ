@@ -83,7 +83,7 @@ class REFER:
 
         # extract subject
         if save_change:
-            from .ref_utils import load_nlp, paper,  consistent_with_cls
+            from ref_utils import load_nlp, paper,  consistent_with_cls
             self.nlp = load_nlp()
             self.saveChangeRef()
 
@@ -161,7 +161,7 @@ class REFER:
 
 
     def saveChangeRef(self):
-
+        from ref_utils import load_nlp, paper,  consistent_with_cls
         print('save change...')
         # fetch info from instances
         Cats = {}
@@ -387,7 +387,7 @@ class REFER:
 if __name__ == '__main__':
 
     data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
-    refer = REFER(data_root, dataset='refcoco+', splitBy='unc')
+    refer = REFER(data_root, dataset='refcoco', splitBy='unc')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='train')
