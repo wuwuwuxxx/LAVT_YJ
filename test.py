@@ -17,6 +17,9 @@ import numpy as np
 from PIL import Image
 import torch.nn.functional as F
 
+save_result = True
+save_dir = './result/'
+os.makedirs(save_dir, exist_ok=True)
 
 def get_dataset(image_set, transform, args):
     from data.dataset_refer_bert_cls import ReferDataset
@@ -29,8 +32,46 @@ def get_dataset(image_set, transform, args):
     num_classes = 2
     return ds, num_classes
 
+# show/save results
+def overlay_davis(image, mask, colors=[[0, 0, 0], [255, 0, 0]], cscale=1, alpha=0.4):
+    from scipy.ndimage.morphology import binary_dilation
 
-def evaluate(model, data_loader, bert_model, device):
+    colors = np.reshape(colors, (-1, 3))
+    colors = np.atleast_2d(colors) * cscale
+
+    im_overlay = image.copy()
+    object_ids = np.unique(mask)
+
+    for object_id in object_ids[1:]:
+        # Overlay color on  binary mask
+        foreground = image*alpha + np.ones(image.shape)*(1-alpha) * np.array(colors[object_id])
+        binary_mask = mask == object_id
+
+        # Compose image
+        im_overlay[binary_mask] = foreground[binary_mask]
+
+        # countours = skimage.morphology.binary.binary_dilation(binary_mask) - binary_mask
+        countours = binary_dilation(binary_mask) ^ binary_mask
+        # countours = cv2.dilate(binary_mask, cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))) - binary_mask
+        im_overlay[countours, :] = 0
+
+    return im_overlay.astype(image.dtype)
+
+def scale_img_back(data,output_gpu=True,device=torch.device(0)):
+    tmp = data.clone().permute(0,2,3,1)
+    if output_gpu:
+        for x in tmp:
+            x *= torch.FloatTensor([0.229,0.224,0.225]).cuda(device=device)
+            x += torch.FloatTensor([0.485,0.456,0.406]).cuda(device=device)
+    else:
+        for x in tmp:
+            x *= torch.FloatTensor([0.229,0.224,0.225])
+            x += torch.FloatTensor([0.485,0.456,0.406])
+
+    # return tmp.permute(0,3,1,2)
+    return tmp
+
+def evaluate(model, data_loader, bert_model, device, dataset_test):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
@@ -79,6 +120,31 @@ def evaluate(model, data_loader, bert_model, device):
                 else:
                     this_iou = I*1.0/U
                 mean_IoU.append(this_iou)
+                if save_result:
+                    if this_iou < 0.4:
+                        this_image = scale_img_back(image) * 255
+                        this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
+                        result = overlay_davis(this_image, output_mask.squeeze())
+                        result_gt = overlay_davis(this_image, target.squeeze())
+                        result = Image.fromarray(result)
+                        result_gt = Image.fromarray(result_gt)
+
+                        this_ref_id = dataset_test.ref_ids[index]
+                        this_img_id = dataset_test.refer.getImgIds(this_ref_id)
+                        this_img = dataset_test.refer.Imgs[this_img_id[0]]
+                        image_name = this_img['file_name']
+                        this_sentences = dataset_test.refer.Refs[this_ref_id]['sentences'][j]['raw']
+
+                        result_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
+                        resultgt_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
+                        result.save(os.path.join(save_dir, result_name))
+                        result_gt.save(os.path.join(save_dir, resultgt_name))
+                        
+                        
+                        
+                        
+
+
                 cum_I += I
                 cum_U += U
                 for n_eval_iou in range(len(eval_seg_iou_list)):
@@ -143,7 +209,7 @@ def main(args):
     else:
         bert_model = None
 
-    evaluate(model, data_loader_test, bert_model, device=device)
+    evaluate(model, data_loader_test, bert_model, device, dataset_test)
 
 
 if __name__ == "__main__":
