@@ -19,7 +19,7 @@ import torch.nn.functional as F
 
 
 def get_dataset(image_set, transform, args):
-    from data.dataset_refer_bert import ReferDataset
+    from data.dataset_refer_bert_cls import ReferDataset
     ds = ReferDataset(args,
                       split=image_set,
                       image_transforms=transform,
@@ -44,7 +44,7 @@ def evaluate(model, data_loader, bert_model, device):
 
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
-            image, target, sentences, attentions, sentences_len = data
+            image, target, sentences, attentions, sentences_len, _, _, _, _ = data
             image, target, sentences, attentions = image.to(device), target.to(device), \
                                                    sentences.to(device), attentions.to(device)
             
