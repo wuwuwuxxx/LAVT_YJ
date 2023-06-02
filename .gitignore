@@ -3,3 +3,5 @@ models/*
 checkpoints/*
 *.pth
 result/*
+*.png
+launch.json
