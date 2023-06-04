@@ -59,6 +59,7 @@ class ReferDataset(data.Dataset):
         self.cls_atten_masks = []
 
         self.eval_mode = eval_mode
+        self.nouse = ['the', 'to', 'one', '？']
         # if we are testing on a dataset, test all sentences of an object;
         # o/w, we are validating during training, randomly sample one sentence for efficiency
         for r in ref_ids:
@@ -75,7 +76,14 @@ class ReferDataset(data.Dataset):
 
             for i, (el, sent_id) in enumerate(zip(ref['sentences'], ref['sent_ids'])):
 
-                sentence_raw = el['raw']
+                sentence_raw = el['sent']
+                new_sent = []
+                for item in sentence_raw.split():
+                    if item in self.nouse:
+                        continue
+                    new_sent.append(item)
+                new_sent = ' '.join(new_sent)
+                sentence_raw = new_sent
                 ## add text prompt
                 if args.NCL > 0: 
                     temp_len = len(self.tokenizer.encode(text=sentence_raw, add_special_tokens=True)) - 2

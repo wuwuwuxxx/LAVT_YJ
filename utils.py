@@ -319,7 +319,7 @@ class RefIou:
             results_str += '    precision@%s = %.2f\n' % \
                         (str(self.eval_seg_iou_list[n_eval_iou]), self.seg_correct[n_eval_iou] * 100. / self.seg_total)
 
-
+        self.over_iou = self.cum_I * 100 / self.cum_U
         return ('mean iou {:.2f}\n over iou {: .2f}\n').format(self.acc_ious * 100 / self.seg_total, self.cum_I * 100 / self.cum_U) + results_str
 
         
