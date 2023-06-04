@@ -148,7 +148,8 @@ def main(args):
 
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        train_sampler = utils.DistributedSampler_LEN(dataset)
+        # train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
         test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test, shuffle=False)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
