@@ -83,9 +83,10 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
     mean_IoU = []
     header = 'Test:'
 
+    # f_sent = open('low_sent.txt', 'w')
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
-            image, target, sentences, attentions, sentences_len, _, _, _, _ = data
+            image, target, sentences, attentions, sentences_len, _, _, _, _,index = data
             image, target, sentences, attentions = image.to(device), target.to(device), \
                                                    sentences.to(device), attentions.to(device)
             
@@ -133,12 +134,13 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                         this_img_id = dataset_test.refer.getImgIds(this_ref_id)
                         this_img = dataset_test.refer.Imgs[this_img_id[0]]
                         image_name = this_img['file_name']
-                        this_sentences = dataset_test.refer.Refs[this_ref_id]['sentences'][j]['raw']
+                        this_sentences = dataset_test.refer.Refs[this_ref_id]['sentences'][j]['sent']
+                        f_sent.write(this_sentences + '\n')
 
-                        result_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
-                        resultgt_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
-                        result.save(os.path.join(save_dir, result_name))
-                        result_gt.save(os.path.join(save_dir, resultgt_name))
+                        # result_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
+                        # resultgt_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
+                        # result.save(os.path.join(save_dir, result_name))
+                        # result_gt.save(os.path.join(save_dir, resultgt_name))
                         
                         
                         
@@ -156,6 +158,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
             if bert_model is not None:
                 del last_hidden_states, embedding
 
+    # f_sent.close()
     mean_IoU = np.array(mean_IoU)
     mIoU = np.mean(mean_IoU)
     print('Final results:')
