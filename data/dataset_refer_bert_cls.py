@@ -59,6 +59,7 @@ class ReferDataset(data.Dataset):
         self.cls_atten_masks = []
 
         self.eval_mode = eval_mode
+        self.nouse = ['the', 'to', 'one', '？']
         # if we are testing on a dataset, test all sentences of an object;
         # o/w, we are validating during training, randomly sample one sentence for efficiency
         for r in ref_ids:

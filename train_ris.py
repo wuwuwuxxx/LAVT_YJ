@@ -114,7 +114,7 @@ def evaluate(model, data_loader, bert_model, ctx=None):
         Refiou.reduce_from_all_processes()
         print(Refiou)
 
-    return 
+    return Refiou.over_iou
 
 
 
@@ -276,11 +276,11 @@ def main(args):
         train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler, epoch, args.print_freq,
                         iterations, bert_model, ctx)
         # iou, overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
-        evaluate(model, data_loader_test, bert_model, ctx)
+        overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
         # print('Average object IoU {}'.format(iou))
         # print('Overall IoU {}'.format(overallIoU))
-        # save_checkpoint = (best_oIoU < overallIoU)
-        save_checkpoint = True
+        save_checkpoint = (best_oIoU < overallIoU)
+        # save_checkpoint = True
         if save_checkpoint:
             print('Better epoch: {}\n'.format(epoch))
             if single_bert_model is not None:
@@ -293,8 +293,8 @@ def main(args):
                                 'lr_scheduler': lr_scheduler.state_dict()}
 
             utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
-                                                            'model_{}.pth'.format(epoch)))
-            # best_oIoU = overallIoU
+                                                            'model_best.pth'.format(epoch)))
+            best_oIoU = overallIoU
 
     # summarize
     total_time = time.time() - start_time
