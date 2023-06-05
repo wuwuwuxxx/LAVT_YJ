@@ -312,13 +312,13 @@ class RefIou:
         self.acc_ious, self.cum_I, self.cum_U, self.seg_total = t
         self.seg_correct = reduce_across_processes(self.seg_correct)
         print(self.seg_total)
-
+        self.over_iou = self.cum_I * 100 / self.cum_U
     def __str__(self):
         results_str = ''
         for n_eval_iou in range(len(self.eval_seg_iou_list)):
             results_str += '    precision@%s = %.2f\n' % \
                         (str(self.eval_seg_iou_list[n_eval_iou]), self.seg_correct[n_eval_iou] * 100. / self.seg_total)
-
+             
         self.over_iou = self.cum_I * 100 / self.cum_U
         return ('mean iou {:.2f}\n over iou {: .2f}\n').format(self.acc_ious * 100 / self.seg_total, self.cum_I * 100 / self.cum_U) + results_str
 
