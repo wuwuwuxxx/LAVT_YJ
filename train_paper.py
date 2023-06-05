@@ -60,7 +60,23 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
             attentions = attentions.unsqueeze(dim=-1)  # (batch, N_l, 1)
             output = model(image, embedding, l_mask=attentions)
         else:
-            output = model(image, sentences, l_mask=attentions)
+            # output = model(image, sentences, l_mask=attentions)
+            if args.distributed:
+                last_hidden_states = model.module.text_encoder(sentences, attention_mask=attentions)[0]
+            else:
+                last_hidden_states = model.text_encoder(sentences, attention_mask=attentions)[0]
+            if args.NCL > 0:
+                for i in range(last_hidden_states.shape[0]):  
+                    temp_len = sentences_len[i] + 1
+                    if (temp_len + args.NCL) <= args.max_tokens:
+                    # print(temp_len)
+                        last_hidden_states[i][temp_len: (temp_len + args.NCL)] = ctx
+
+            embedding = last_hidden_states.permute(0, 2, 1)  # (B, 768, N_l) to make Conv1d happy
+            temp_attentions = attentions.unsqueeze(dim=-1)  # (B, N_l, 1)
+            output = model(image, embedding, l_mask=temp_attentions)
+
+
 
         loss = args.loss_weight * criterion(output, target)
         optimizer.zero_grad()  # set_to_none=True is only available in pytorch 1.6+

@@ -103,7 +103,21 @@ def evaluate(model, data_loader, bert_model, ctx=None):
                     temp_attentions = attentions[:, :, j].unsqueeze(dim=-1)  # (B, N_l, 1)
                     output = model(image, embedding, l_mask=temp_attentions)
                 else:
-                    output = model(image, sentences, l_mask=attentions)
+                    if args.distributed:
+                        last_hidden_states = model.module.text_encoder(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
+                    else:
+                        last_hidden_states = model.text_encoder(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
+                    if args.NCL > 0:
+                        for i in range(sentences_len.size(0)):  
+                            temp_len = sentences_len[i][0][j] + 1
+                            if (temp_len + args.NCL) <= args.max_tokens:
+                            # print(temp_len)
+                                last_hidden_states[i][temp_len: (temp_len + args.NCL)] = ctx
+
+                    embedding = last_hidden_states.permute(0, 2, 1)  # (B, 768, N_l) to make Conv1d happy
+                    temp_attentions = attentions[:, :, j].unsqueeze(dim=-1)  # (B, N_l, 1)
+                    output = model(image, embedding, l_mask=temp_attentions)
+                    # output = model(image, sentences, l_mask=attentions)
 
                 # output = F.interpolate(output, size=(480, 480), mode='bilinear', align_corners=True)
 
@@ -148,8 +162,8 @@ def main(args):
 
 
     if args.distributed:
-        train_sampler = utils.DistributedSampler_LEN(dataset)
-        # train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        # train_sampler = utils.DistributedSampler_LEN(dataset)
+        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
         test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test, shuffle=False)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
