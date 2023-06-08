@@ -95,6 +95,8 @@ def evaluate(model, data_loader, bert_model, ctx=None):
                     if args.NCL > 0:
                         for i in range(sentences_len.size(0)):  
                             temp_len = sentences_len[i][0][j] + 1
+                            if temp_len < 0:
+                                continue
                             if (temp_len + args.NCL) <= args.max_tokens:
                             # print(temp_len)
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = ctx

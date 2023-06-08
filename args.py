@@ -8,7 +8,7 @@ def get_parser():
     parser.add_argument('-b', '--batch-size', default=1, type=int)
     parser.add_argument('--bert_tokenizer', default='bert-base-uncased', help='BERT tokenizer')
     parser.add_argument('--ck_bert', default='bert-base-uncased', help='pre-trained BERT weights')
-    parser.add_argument('--dataset', default='refcoco+', help='refcoco, refcoco+, or refcocog')
+    parser.add_argument('--dataset', default='refcoco', help='refcoco, refcoco+, or refcocog')
     parser.add_argument('--ddp_trained_weights', action='store_true',
                         help='Only needs specified when testing,'
                              'whether the weights to be loaded are from a DDP-trained model')
@@ -31,7 +31,7 @@ def get_parser():
     parser.add_argument('--print-freq', default=10, type=int, help='print frequency')
     parser.add_argument('--refer_data_root', default='/home/AI-T1/DatasetPublic/RIS/refer/data', help='REFER dataset root directory')
     parser.add_argument('--resume', default='', help='resume from checkpoint')
-    parser.add_argument('--split', default='val', help='only used when testing')
+    parser.add_argument('--split', default='train', help='only used when testing')
     parser.add_argument('--splitBy', default='unc', help='change to umd or google when the dataset is G-Ref (RefCOCOg)')
     parser.add_argument('--swin_type', default='base',
                         help='tiny, small, base, or large variants of the Swin Transformer')
@@ -58,7 +58,7 @@ def get_parser():
     
 
     parser.add_argument('--method', default='cls_guide_gt', type=str, help='method use')
-    parser.add_argument('--use_new', default=True, type=bool, help='method use')
+    parser.add_argument('--use_new', default='new_no_cls', type=str, help='method use')
     return parser
 
 

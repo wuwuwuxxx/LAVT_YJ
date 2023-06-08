@@ -42,7 +42,7 @@ from PIL import Image
 
 class REFER:
 
-    def __init__(self, data_root, dataset='refcoco', splitBy='unc', use_new = True, save_change=False):
+    def __init__(self, data_root, dataset='refcoco', splitBy='unc', use_new = 'none', save_change=True):
         # provide data_root folder which contains refclef, refcoco, refcoco+ and refcocog
         # also provide dataset name and splitBy information
         # e.g., dataset = 'refcoco', splitBy = 'unc'
@@ -62,11 +62,14 @@ class REFER:
 
         # load refs from data/dataset/refs(dataset).json
         tic = time.time()
-        if use_new:
+        if use_new == 'new':
             ref_file = osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p')
+        elif use_new == 'new_no_cls':
+            ref_file = osp.join(self.DATA_DIR, 'new_rule_2_refs(' + splitBy + ').p')
         else:
             ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')
         
+        print('ref_file:', ref_file)
         self.data = {}
         self.data['dataset'] = dataset
         f = open(ref_file, 'r')
@@ -87,7 +90,7 @@ class REFER:
             self.nlp = load_nlp()
             self.saveChangeRef()
 
-            with open(osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p'), 'wb') as f_new:
+            with open(osp.join(self.DATA_DIR, 'new_rule_2_refs(' + splitBy + ').p'), 'wb') as f_new:
                 pickle.dump(self.data['refs'], f_new)
                 
                 
@@ -161,37 +164,64 @@ class REFER:
 
 
     def saveChangeRef(self):
-        from ref_utils import load_nlp, paper,  consistent_with_cls
+        from ref_utils import load_nlp, paper,  consistent_with_cls, cls_noun, cal_sim
         print('save change...')
         # fetch info from instances
         Cats = {}
         for cat in self.data['categories']:
             Cats[cat['id']] = cat['name']
 
-
-        for ref in self.data['refs']:
-
-            category_id = ref['category_id']
-            # 类别信息
-            cls_name = Cats[category_id]
-            # add mapping of sent
-            for i, sent in enumerate(ref['sentences']):
-                target_info = ' X '
-                sentence = sent['raw']
-                doc = self.nlp(sentence)
-                # 提取到的主语
-                subject = paper(doc)
-                if subject is None:
-                    target_info = target_info + cls_name
-                else:
-                    relation = consistent_with_cls(cls_name, subject.text)
-                    if relation:
-                        target_info = target_info + subject.text
-                    else:
-                        target_info = target_info + cls_name
-                
-                sent['raw'] = sentence + target_info
+        # with open('right_' + self.data['dataset'] + '.pkl', 'rb') as f_r:
+        #     right = pickle.load(f_r)
+        # right = []
+        with open('no_subject_' + self.data['dataset'] + '.txt', 'w') as f:
+            for j, ref in enumerate(self.data['refs']):
+                # if j in right:
+                #     continue
+                category_id = ref['category_id']
+                # 类别信息
+                cls_name = Cats[category_id]
+                # add mapping of sent
+                for i, sent in enumerate(ref['sentences']):
+                    target_info = ' X '
+                    sentence = sent['sent']
+                    doc = self.nlp(sentence)
+                    # 提取到的主语
+                    subject = paper(doc)
+                    # 最后的主语
+                    sub_item = None
+                    if subject is not None:
+                        relation = consistent_with_cls(cls_name, subject.text)
+                        if relation:
+                            # right.append(j)
+                            sub_item = subject.text
+                            # target_info = target_info + subject.text
+                    # 用规则提取
+                    if sub_item is None:
+                        if cls_name in sentence:
+                            sub_item = cls_name
+                        else:
+                            sub_item = cls_noun(cls_name, sentence)
+                    # 用相似度提取
+                    if sub_item is None:
+                        sub_item = cal_sim(self.nlp, cls_name, doc)
+                        # if sub_item is None:
+                        #     f.write(sentence + '/' + cls_name +'\n')
+                    # 用spacy再提取
+                    if sub_item is None:
+                        # sub_item = paper(doc)
+                        # if sub_item is not None:
+                        #     sub_item = sub_item.text
+                        # else:
+                        sub_item = 'none'
+                        f.write(sentence + '/' + cls_name +'\n')
+                    
+                    target_info = target_info + sub_item
+                    sent['raw'] = sentence + target_info
             # print(ref['sentences'])
+        # with open('right_' + self.data['dataset'] + '.pkl', 'wb') as f_r:
+        #     pickle.dump(right, f_r)
+        print(len(self.data['refs']))
                 
                 
 
@@ -387,7 +417,7 @@ class REFER:
 if __name__ == '__main__':
 
     data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
-    refer = REFER(data_root, dataset='refcoco', splitBy='unc')
+    refer = REFER(data_root, dataset='refcoco+', splitBy='unc')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='train')

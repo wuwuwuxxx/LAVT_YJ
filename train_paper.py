@@ -52,6 +52,8 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
             if args.NCL > 0:
                 for i in range(last_hidden_states.shape[0]):  
                     temp_len = sentences_len[i] + 1
+                    if temp_len < 0:
+                        continue
                     if (temp_len + args.NCL) <= args.max_tokens:
                         # print(temp_len)
                         last_hidden_states[i][temp_len: (temp_len + args.NCL)] = ctx

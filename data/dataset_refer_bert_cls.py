@@ -22,7 +22,7 @@ import torch.nn.functional as F
 # Dataset configuration initialization
 parser = get_parser()
 args = parser.parse_args()
-
+import pickle
 
 class ReferDataset(data.Dataset):
 
@@ -62,6 +62,9 @@ class ReferDataset(data.Dataset):
         self.nouse = ['the', 'to', 'one', '？']
         # if we are testing on a dataset, test all sentences of an object;
         # o/w, we are validating during training, randomly sample one sentence for efficiency
+
+        # subject_dict = {}
+
         for r in ref_ids:
             ref = self.refer.Refs[r]
 
@@ -73,25 +76,56 @@ class ReferDataset(data.Dataset):
             cls_for_ref = []
             cls_atten_for_ref = []
 
-
             for i, (el, sent_id) in enumerate(zip(ref['sentences'], ref['sent_ids'])):
 
                 sentence_raw = el['raw']
                 sentence_raw_sent = el['sent']
-                if args.use_new:
+                if args.use_new == 'new':
                     # 原sentence长度
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                     # 找到主语
                     sub_index = sentence_raw.find(' X ')
                     subject = sentence_raw[(sub_index + 3):]
                     # 句子太长对句子进行截取
-                    if temp_len > self.max_tokens :
+                    if temp_len > self.max_tokens:
                         sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
                         temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                     sentence_len.append(temp_len)
                     # 加上主语
                     sentence_raw_sent = sentence_raw_sent + ' X ' + subject
                     sentence_raw = sentence_raw_sent
+                elif args.use_new == 'new_no_cls':
+                    # 原sentence长度
+                    temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                    # 找到主语
+                    sub_index = sentence_raw.find(' X ')
+                    subject = sentence_raw[(sub_index + 3):]
+
+                    if subject[:4] == 'none':
+                        subject = ''
+                        if temp_len > self.max_tokens:
+                            sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                            temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                        sentence_raw = sentence_raw_sent
+                        # # 没有主语就不加X
+                        sentence_len.append(-10)
+                    else:
+                        # 句子太长对句子进行截取
+                        if temp_len > self.max_tokens:
+                            sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                            temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                        subject = subject.lower()
+                        # if subject in subject_dict:
+                        #     subject_dict[subject] += 1
+                        # else:
+                        #     subject_dict[subject] = 1
+                        # 加上主语
+                        sentence_raw_sent = sentence_raw_sent + ' X ' + subject
+                        sentence_raw = sentence_raw_sent
+                        sentence_len.append(temp_len)
+                        
+
+                    print(sentence_raw)
                 else:
                     ## add text prompt
                     if args.NCL > 0: 
@@ -138,6 +172,8 @@ class ReferDataset(data.Dataset):
             self.sentence_len.append(sentence_len)
             self.input_cls_ids.append(cls_for_ref)
             self.cls_atten_masks.append(cls_atten_for_ref)
+        # with open('subject_dict_' + args.dataset + '.pkl', 'wb') as f_s:
+        #     pickle.dump(subject_dict, f_s)
 
     def get_classes(self):
         return self.classes
@@ -226,7 +262,7 @@ if __name__ == '__main__':
 
 
     rdataset = ReferDataset(args,
-                      split='val',
+                      split='train',
                       image_transforms=tfm,
                       target_transforms=None,
                       )
