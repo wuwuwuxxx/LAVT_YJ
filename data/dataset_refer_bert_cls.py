@@ -97,35 +97,47 @@ class ReferDataset(data.Dataset):
                 elif args.use_new == 'new_no_cls':
                     # 原sentence长度
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                    # 找到主语
-                    sub_index = sentence_raw.find(' X ')
-                    subject = sentence_raw[(sub_index + 3):]
+                    if temp_len > 3:
+                        # 找到主语
+                        sub_index = sentence_raw.find(' X ')
+                        subject = sentence_raw[(sub_index + 3):]
 
-                    if subject[:4] == 'none':
-                        subject = ''
-                        if temp_len > self.max_tokens:
-                            sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
-                            temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                        sentence_raw = sentence_raw_sent
-                        # # 没有主语就不加X
-                        sentence_len.append(-10)
-                    else:
-                        # 句子太长对句子进行截取
-                        if temp_len > self.max_tokens:
-                            sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
-                            temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                        subject = subject.lower()
-                        # if subject in subject_dict:
-                        #     subject_dict[subject] += 1
-                        # else:
-                        #     subject_dict[subject] = 1
-                        # 加上主语
-                        sentence_raw_sent = sentence_raw_sent + ' X ' + subject
-                        sentence_raw = sentence_raw_sent
-                        sentence_len.append(temp_len)
+                   
+
+                        if subject[:4] == 'none':
+                            subject = ''
+                            if temp_len > self.max_tokens:
+                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                                temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                            # sentence_raw = sentence_raw_sent
+                            temp_len = -temp_len
+                            # # 没有主语就不加X
+                            # sentence_len.append(-temp_len)
+                            # if temp_len > 3:
+                            #     sub_num += 1
+                            print(sentence_raw + ' '+ self.classes[ref['category_id']])
+                        else:
+                            # 句子太长对句子进行截取
+                            if temp_len > self.max_tokens:
+                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                                temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                            subject = subject.lower()
+                            if temp_len > 3:
+                                if subject in subject_dict:
+                                    subject_dict[subject] += 1
+                                else:
+                                    subject_dict[subject] = 1
+                            # if subject + '_' + self.classes[ref['category_id']] in subject_dict:
+                            #     subject_dict[subject + '_' + self.classes[ref['category_id']]] += 1
+                            # else:
+                            #     subject_dict[subject + '_' + self.classes[ref['category_id']]] = 1
+                            # 加上主语
+                            sentence_raw_sent = sentence_raw_sent + ' X ' + subject
+                    sentence_raw = sentence_raw_sent
+                    sentence_len.append(temp_len)
                         
 
-                    print(sentence_raw)
+                    # print(sentence_raw)
                 else:
                     ## add text prompt
                     if args.NCL > 0: 
@@ -262,7 +274,7 @@ if __name__ == '__main__':
 
 
     rdataset = ReferDataset(args,
-                      split='train',
+                      split='testB',
                       image_transforms=tfm,
                       target_transforms=None,
                       )

@@ -57,7 +57,7 @@ def cls_noun(cls, sentence):
     raw_sentence = sentence
     sentence = sentence.split()
     for item in sentence:
-        if item in cls and len(item) >2:
+        if item in cls.split() and len(item) >2:
             return item
         if consistent_with_cls(cls, item):
             return item 
@@ -74,14 +74,14 @@ def cls_noun(cls, sentence):
         # 交通工具
         if  cls in ['car', 'bicycle', 'truck', 'motorcycle', 'train', 'boat', 'bus', 'surfboard'] :
             for item in sentence:
-                if item in['van', 'car', 'truck', 'bike', 'bikes', 'truck', 'cart', 'trailer', 'bmw', 'wagon', 'vehicle',  'suv', 'boat', 'ship', 'chevrolet', 
+                if item in ['van', 'car', 'truck', 'bike', 'bikes', 'truck', 'cart', 'trailer', 'bmw', 'wagon', 'vehicle',  'suv', 'boat', 'ship', 'chevrolet', 
                            'toyota', 'honda', 'yacht', 'bicycle' ,'motorcycle', 'train', 'jeep', 'skis', 'trolley', 'tram', 'bus', 
-                           'scooter', 'ambulance', 'crane', 'dirtbike', 'surfboard', 'ford', 'skateboard', 'sail', 'tractor']:
+                           'scooter', 'ambulance', 'crane', 'dirtbike', 'surfboard', 'ford', 'skateboard', 'sail', 'tractor', 'board']:
                     return item
         # 飞机
         if cls in ['airplane']:
             for item in sentence:
-                if item in['aircraft','helicopter', 'flight', 'plain']:
+                if item in ['aircraft','helicopter', 'flight', 'plain']:
                     return item
         # 甜点
         if cls in ['donut', 'cake', 'sandwich', 'pizza', 'hot dog']:
@@ -92,7 +92,7 @@ def cls_noun(cls, sentence):
             for item in sentence:
                 if item in ['doughnut', 'cookie', 'donut', 'cake', 'bread', 'sandwich', 'pizza', 'cupcake', 'pastry', 'dessert', 'peach', 
                             'food', 'chocolate', 'muffin', 'sausage', 'pie', 'fish', 'burger', 'hotdog', 'pumpkin', 'loaf', 'salad', 'toast',
-                            'carrots', 'carrot', 'taco', 'tacos']:
+                            'carrots', 'carrot', 'taco', 'tacos', 'waffles', 'waffle', 'bagel']:
                     return item
         if cls in ['donut', 'cake', 'sandwich', 'pizza', 'hot dog']:
             for item in sentence:
@@ -106,7 +106,7 @@ def cls_noun(cls, sentence):
             if 'french fry' in raw_sentence:
                 return 'french fry'
             for item in sentence:
-                if item in ['carrot', 'carrots', 'broccoli', 'potatoes', 'cauliflower', 'vegetable', 'vegetables', 'cauli', 'fruit', 'fries']:
+                if item in ['carrot', 'carrots', 'broccoli', 'potatoes', 'cauliflower', 'vegetable', 'vegetables', 'cauli', 'fruit', 'fries', 'veggie']:
                     return item
             for item in sentence:
                 if item in ['slice', 'piece']:
@@ -123,7 +123,7 @@ def cls_noun(cls, sentence):
         if cls in ['teddy bear', 'cat', 'dog']:
             for item in sentence:
                 if item in ['teddybears', 'bears', 'bear', 'animal', 'animals', 'toy', 'doll', 'kola', 'bulls', 'donkey', 'cat', 
-                            'animal', 'dog', 'monkey', 'puppy', 'lamb', 'panda', 'pig', 'toys', 'rabbit', 'kitten', 'cow', 'kitty']:
+                            'animal', 'dog', 'monkey', 'puppy', 'lamb', 'panda', 'pig', 'toys', 'rabbit', 'kitten', 'cow', 'kitty', 'snoopy']:
                     return item
                 
         if cls in ['bird']:
@@ -133,12 +133,12 @@ def cls_noun(cls, sentence):
         # 椅子
         if cls in ['chair', 'bench', 'sofa', 'couch']:
             for item in sentence:
-                for item in ['chair', 'bench', 'sofa', 'desk', 'stool', 'couch', 'armchair', 'seat']:
+                if item in ['chair', 'bench', 'sofa', 'desk', 'stool', 'couch', 'armchair', 'seat', 'loveseat']:
                     return item 
         # 包
         if cls in ['backpack', 'handbag', 'suitcase']:
             for item in sentence:
-                for item in ['bag', 'suitcase', 'backpack', 'luggage', 'purse', 'box', 'handbag',]:
+                if item in ['bag', 'suitcase', 'backpack', 'luggage', 'purse', 'box', 'handbag',]:
                     return item 
         # 电子产品
         if cls in ['tv', 'laptop', 'keyboard']:
@@ -158,7 +158,7 @@ def cls_noun(cls, sentence):
         # 植物
         if cls in ['potted plant']:
             for item in sentence:
-                if item in ['flower', 'flowers', 'tree', 'trees','houseplant', 'houseplants', 'plants', 'bush', 'roses', 'rose', 'vase', 'jar', 'planter', 'leaf', 'leaves']:
+                if item in ['flower', 'flowers', 'tree', 'trees','houseplant', 'houseplants', 'plants', 'bush', 'roses', 'rose', 'vase', 'jar', 'planter', 'leaf', 'leaves', 'plant', 'pot']:
                     return item
         # 滑雪板
         if cls in ['snowboard']:
@@ -198,12 +198,12 @@ def cls_noun(cls, sentence):
             for item in sentence:
                 if item in ['table', 'dish', 'plate', 'plates','pizza', 'tray', 'dessert', 'tabletop', 'placemat', 'knife', 'countertop',
                              'desk', 'pillow', 'pillows', 'bowl', 'bed', 'blanket', 'platter', 'cup', 'bunk', 'glasses', 'orange', 'carpet', 
-                             'dishes', 'food', 'counter', 'tablecloth', 'bottle']:
+                             'dishes', 'food', 'counter', 'tablecloth', 'bottle', 'matress']:
                     return item
                 
-        if cls in ['traffic light']:
+        if cls in ['traffic light', 'parking meter']:
             for item in sentence:
-                if item in ['sign', 'light', 'lights', 'signal', 'stoplight']:
+                if item in ['sign', 'light', 'lights', 'signal', 'stoplight', 'meter']:
                     return item
 
     else:
@@ -215,7 +215,8 @@ def cls_noun(cls, sentence):
             if item in ['hand', 'hands', 'foot', 'hat', 'fireman', 'dress', 'clothing', 'arm', 'shoulder', 'driver', 
                         'shirt', 'head', 'thumb', 'sneakers', 'jacket', 'people', 'finger', 'legs', 'leg', 'pants',
                           'men', 'skiier', 'hair', 'coat', 'sweatshirt', 'face', 'shoe', 'arms', 'jeans', 'shorts', 
-                          'scarf', 'police', 'hoodie', 'jersey', 'suit', 'clothes', 'socks', 'fingers', 'shoes']:
+                          'scarf', 'police', 'hoodie', 'jersey', 'suit', 'clothes', 'socks', 'fingers', 'shoes', 'sweater',
+                          'tshirt', 'uniform', 'skirt', 'woman', 'helmet']:
                 return item
 
     return None
