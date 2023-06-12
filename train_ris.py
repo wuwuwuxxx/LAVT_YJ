@@ -63,13 +63,13 @@ def get_transform(args):
     return T.Compose(transforms)
 
 
-def evaluate(model, data_loader, bert_model, ctx=None):
+def evaluate(model, data_loader, bert_model, ctx=None, args=None):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
 
 
-    Refiou = utils.RefIou()
+    Refiou = utils.RefIou(args.len_thresh)
     
 
     with torch.no_grad():
@@ -97,7 +97,7 @@ def evaluate(model, data_loader, bert_model, ctx=None):
                             temp_len = sentences_len[i][0][j] + 1
                             if temp_len < 0:
                                 continue
-                            if (temp_len + args.NCL) <= args.max_tokens and temp_len > 3:
+                            if (temp_len + args.NCL) <= args.max_tokens and temp_len > args.len_thresh + 1:
                             # print(temp_len)
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = ctx
 
@@ -123,14 +123,14 @@ def evaluate(model, data_loader, bert_model, ctx=None):
 
                 # output = F.interpolate(output, size=(480, 480), mode='bilinear', align_corners=True)
 
-                Refiou.update(output.cpu(), target.cpu())
+                Refiou.update(output.cpu(), target.cpu(), abs(temp_len-1))
 
             # break
 
         Refiou.reduce_from_all_processes()
         print(Refiou)
 
-    return Refiou.over_iou
+    return Refiou.over_iou, Refiou.over_iou_l, Refiou.over_iou_s
 
 
 
@@ -273,6 +273,7 @@ def main(args):
     start_time = time.time()
     iterations = 0
     best_oIoU = -0.1
+    best_oIoU_l = -1
 
     # resume training (optimizer, lr scheduler, and the epoch)
     if args.resume:
@@ -292,10 +293,11 @@ def main(args):
         train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler, epoch, args.print_freq,
                         iterations, bert_model, ctx)
         # iou, overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
-        overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
+        overallIoU, overallIoU_l, overallIoU_l_s = evaluate(model, data_loader_test, bert_model, ctx, args)
         # print('Average object IoU {}'.format(iou))
         # print('Overall IoU {}'.format(overallIoU))
-        save_checkpoint = (best_oIoU < overallIoU)
+        save_checkpoint = (best_oIoU < overallIoU) 
+        save_checkpoint_l = (best_oIoU_l < overallIoU_l) 
         # save_checkpoint = True
         if save_checkpoint:
             print('Better epoch: {}\n'.format(epoch))
@@ -311,6 +313,22 @@ def main(args):
             utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
                                                             'model_best.pth'.format(epoch)))
             best_oIoU = overallIoU
+
+
+        if save_checkpoint_l:
+            print('Better epoch: {}\n'.format(epoch))
+            if single_bert_model is not None:
+                dict_to_save = {'model': single_model.state_dict(), 'bert_model': single_bert_model.state_dict(),
+                                'optimizer': optimizer.state_dict(), 'epoch': epoch, 'args': args,
+                                'lr_scheduler': lr_scheduler.state_dict()}
+            else:
+                dict_to_save = {'model': single_model.state_dict(),
+                                'optimizer': optimizer.state_dict(), 'epoch': epoch, 'args': args,
+                                'lr_scheduler': lr_scheduler.state_dict()}
+
+            utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
+                                                            'model_best_l.pth'.format(epoch)))
+            best_oIoU_l = overallIoU_l
 
     # summarize
     total_time = time.time() - start_time

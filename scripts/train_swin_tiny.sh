@@ -26,7 +26,7 @@
 #       --NCL 0 --max_tokens 20 --start_guide_epoch -1 --epochs 40 --img_size  480 --resume '' --workers 8  > ./models/refcoco+/output_tiny_gt_guide 2>&1 &
 
 
-DATASET=refcoco+
+DATASET=refcoco
 SWIN_TYPE=base
 METHOD=paper
 NCL=1
@@ -36,11 +36,12 @@ BRANCH=extract_subject
 MODEL=lavt
 USE_NEW=new_no_cls
 SPLIT=unc
+LEN_THRESH=5
 
 CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12341 train_ris.py \
-      --loss_weight ${LOSS_WEIGHT} --classifer_lr 1.0 --method ${METHOD} --model ${MODEL} --dataset ${DATASET} --model_id ${DATASET}_${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_rule3_3 --splitBy ${SPLIT} --batch-size 8 --lr 0.00005 \
+      --loss_weight ${LOSS_WEIGHT} --classifer_lr 1.0 --method ${METHOD} --model ${MODEL} --dataset ${DATASET} --model_id ${DATASET}_${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_rule4_len${LEN_THRESH} --splitBy ${SPLIT} --batch-size 8 --lr 0.00005 \
       --wd 1e-2 --use_new ${USE_NEW} --swin_type ${SWIN_TYPE} --pretrained_swin_weights /home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/swin_base_patch4_window12_384_22k.pth \
-      --NCL ${NCL} --max_tokens ${MAX_TOKENS} --epochs 40 --img_size 480 --resume '' --workers 8  > ./models/${DATASET}/output_${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_rule3_3  2>&1 &
+      --NCL ${NCL} --max_tokens ${MAX_TOKENS} --epochs 40 --img_size 480 --resume '' --workers 8  > ./models/${DATASET}/output_${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_rule4_len${LEN_THRESH}  2>&1 &
 
 
 

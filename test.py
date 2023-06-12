@@ -83,10 +83,14 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
     mean_IoU = []
     header = 'Test:'
 
-    # f_sent = open('low_sent.txt', 'w')
+    f_sent = open('low_sent_4.txt', 'w')
+    num_short, num_long = 0, 0
+    mean_sIou, mean_lIou = [], []
+    cum_s_I, cum_s_U = 0, 0
+    cum_l_I, cum_l_U = 0, 0
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
-            image, target, sentences, attentions, sentences_len, _, _, _, _,index = data
+            image, target, sentences, attentions, sentences_len, _, _, _, _, index= data
             image, target, sentences, attentions = image.to(device), target.to(device), \
                                                    sentences.to(device), attentions.to(device)
             
@@ -101,12 +105,16 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
             for j in range(sentences.size(-1)):
                 if bert_model is not None:
                     last_hidden_states = bert_model(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
+                    temp_len = sentences_len[0][0][j] + 1
+                    if  abs(temp_len - 1) <= 7:
+                        continue
                     if args.NCL > 0:
                         for i in range(sentences_len.size(0)):  
-                            temp_len = sentences_len[i][0][j] + 1
-                            if (temp_len + args.NCL) <= args.max_tokens:
+                            # temp_len = sentences_len[i][0][j] + 1
+                            if (temp_len + args.NCL) <= args.max_tokens and temp_len > 4:
                             # print(temp_len)
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = model.ctx
+
                     embedding = last_hidden_states.permute(0, 2, 1)
                     output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1))
                     output = F.interpolate(output, size=input_shape, mode='bilinear', align_corners=True)
@@ -121,21 +129,27 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                 else:
                     this_iou = I*1.0/U
                 mean_IoU.append(this_iou)
+                if abs(temp_len - 1) > 7:
+                    mean_lIou.append(this_iou)
+                    num_long += 1
+                else:
+                    mean_sIou.append(this_iou)
+                    num_short += 1
                 if save_result:
-                    if this_iou < 0.4:
-                        this_image = scale_img_back(image) * 255
-                        this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
-                        result = overlay_davis(this_image, output_mask.squeeze())
-                        result_gt = overlay_davis(this_image, target.squeeze())
-                        result = Image.fromarray(result)
-                        result_gt = Image.fromarray(result_gt)
+                    if this_iou >= 0 and abs(temp_len - 1) > 7:
+                        # this_image = scale_img_back(image) * 255
+                        # this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
+                        # result = overlay_davis(this_image, output_mask.squeeze())
+                        # result_gt = overlay_davis(this_image, target.squeeze())
+                        # result = Image.fromarray(result)
+                        # result_gt = Image.fromarray(result_gt)
 
                         this_ref_id = dataset_test.ref_ids[index]
                         this_img_id = dataset_test.refer.getImgIds(this_ref_id)
                         this_img = dataset_test.refer.Imgs[this_img_id[0]]
                         image_name = this_img['file_name']
                         this_sentences = dataset_test.refer.Refs[this_ref_id]['sentences'][j]['sent']
-                        f_sent.write(this_sentences + '\n')
+                        f_sent.write(image_name + '\t' +  this_sentences + '\t' +  str(this_iou) + '\n')
 
                         # result_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
                         # resultgt_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
@@ -143,20 +157,22 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                         # result_gt.save(os.path.join(save_dir, resultgt_name))
                         
                         
-                        
-                        
-
-
                 cum_I += I
                 cum_U += U
+                if abs(temp_len - 1) > 7:
+                    cum_l_I += I
+                    cum_l_U += U
+                else:
+                    cum_s_I += I
+                    cum_s_U += U
                 for n_eval_iou in range(len(eval_seg_iou_list)):
                     eval_seg_iou = eval_seg_iou_list[n_eval_iou]
                     seg_correct[n_eval_iou] += (this_iou >= eval_seg_iou)
                 seg_total += 1
 
-            del image, target, sentences, attentions, output, output_mask
-            if bert_model is not None:
-                del last_hidden_states, embedding
+            # del image, target, sentences, attentions, output, output_mask
+            # if bert_model is not None:
+            #     del last_hidden_states, embedding
 
     # f_sent.close()
     mean_IoU = np.array(mean_IoU)
@@ -168,7 +184,17 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
         results_str += '    precision@%s = %.2f\n' % \
                        (str(eval_seg_iou_list[n_eval_iou]), seg_correct[n_eval_iou] * 100. / seg_total)
     results_str += '    overall IoU = %.2f\n' % (cum_I * 100. / cum_U)
+
+    # results_str += 'SHORT overall IoU = %.2f\n' % (cum_s_I * 100. / cum_s_U)
+    # mean_sIou = np.mean(np.array(mean_sIou))
+    # results_str += 'SHORT mean IoU = %.2f\n' % (mean_sIou * 100.)
+    results_str += 'LONG overall IoU = %.2f\n' % (cum_l_I * 100. / cum_l_U)
+    mean_lIou = np.mean(np.array(mean_lIou))
+    results_str += 'LONG mean IoU = %.2f\n' % (mean_lIou * 100.)
+
     print(results_str)
+    print('short: ', num_short)
+    print('long: ', num_long)
 
 
 def get_transform(args):

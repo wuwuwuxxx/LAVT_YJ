@@ -8,7 +8,7 @@ def get_parser():
     parser.add_argument('-b', '--batch-size', default=1, type=int)
     parser.add_argument('--bert_tokenizer', default='bert-base-uncased', help='BERT tokenizer')
     parser.add_argument('--ck_bert', default='bert-base-uncased', help='pre-trained BERT weights')
-    parser.add_argument('--dataset', default='refcoco', help='refcoco, refcoco+, or refcocog')
+    parser.add_argument('--dataset', default='refcoco+', help='refcoco, refcoco+, or refcocog')
     parser.add_argument('--ddp_trained_weights', action='store_true',
                         help='Only needs specified when testing,'
                              'whether the weights to be loaded are from a DDP-trained model')
@@ -59,6 +59,7 @@ def get_parser():
 
     parser.add_argument('--method', default='cls_guide_gt', type=str, help='method use')
     parser.add_argument('--use_new', default='new_no_cls', type=str, help='method use')
+    parser.add_argument('--len_thresh', default=5, type=int, help='classifer lr weight')
     return parser
 
 

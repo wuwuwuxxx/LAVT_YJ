@@ -7,3 +7,6 @@ cls.png
 example.png
 demo_result.jpg
 .vscode/*
+*.txt
+*.pkl
+*.log

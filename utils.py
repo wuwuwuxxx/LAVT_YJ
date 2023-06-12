@@ -287,16 +287,28 @@ def reduce_across_processes(val):
 
 
 class RefIou:
-    def __init__(self):
+    def __init__(self, len_thresh):
         self.cum_I = 0
         self.cum_U = 0
         self.eval_seg_iou_list = [.5, .6, .7, .8, .9]
         self.acc_ious = 0
         self.seg_correct = np.zeros(len(self.eval_seg_iou_list), dtype=np.int32)
         self.seg_total = 0
-        
 
-    def update(self, output, target):
+        self.cum_s_I = 0
+        self.cum_s_U = 1e-8
+        self.acc_ious_s = 0
+        self.seg_total_s = 0
+
+        
+        self.cum_l_I = 0
+        self.cum_l_U = 1e-8
+        self.acc_ious_l = 0
+        self.seg_total_l = 0
+
+        self.len_thresh = len_thresh
+
+    def update(self, output, target, temp_len):
         iou, I, U = IoU(output, target)
         self.acc_ious += iou
         self.cum_I += I
@@ -305,22 +317,44 @@ class RefIou:
         for n_eval_iou in range(len(self.eval_seg_iou_list)):
             eval_seg_iou = self.eval_seg_iou_list[n_eval_iou]
             self.seg_correct[n_eval_iou] += (iou >= eval_seg_iou)
+
+        if temp_len > self.len_thresh:
+            self.cum_l_U += U
+            self.cum_l_I += I
+            self.acc_ious_l += iou
+            self.seg_total_l += 1
+        else:
+            self.cum_s_U += U
+            self.cum_s_I += I
+            self.acc_ious_s += iou
+            self.seg_total_s += 1
+
         
     
     def reduce_from_all_processes(self):
         t = reduce_across_processes([self.acc_ious, self.cum_I, self.cum_U, self.seg_total])
         self.acc_ious, self.cum_I, self.cum_U, self.seg_total = t
         self.seg_correct = reduce_across_processes(self.seg_correct)
-        print(self.seg_total)
         self.over_iou = self.cum_I * 100 / self.cum_U
+
+        t_l = reduce_across_processes([self.acc_ious_l, self.cum_l_I, self.cum_l_U, self.seg_total_l])
+        self.acc_ious_l, self.cum_l_I, self.cum_l_U, self.seg_total_l = t_l
+        self.over_iou_l = self.cum_l_I * 100 / self.cum_l_U
+
+        t_s = reduce_across_processes([self.acc_ious_s, self.cum_s_I, self.cum_s_U, self.seg_total_s])
+        self.acc_ious_s, self.cum_s_I, self.cum_s_U, self.seg_total_s = t_s
+        self.over_iou_s = self.cum_s_I * 100 / self.cum_s_U
+
     def __str__(self):
         results_str = ''
         for n_eval_iou in range(len(self.eval_seg_iou_list)):
             results_str += '    precision@%s = %.2f\n' % \
                         (str(self.eval_seg_iou_list[n_eval_iou]), self.seg_correct[n_eval_iou] * 100. / self.seg_total)
              
-        self.over_iou = self.cum_I * 100 / self.cum_U
-        return ('mean iou {:.2f}\n over iou {: .2f}\n').format(self.acc_ious * 100 / self.seg_total, self.cum_I * 100 / self.cum_U) + results_str
+
+        return ('mean iou {:.2f}\n over iou {: .2f}\n').format(self.acc_ious * 100 / self.seg_total, self.cum_I * 100 / self.cum_U) + results_str + \
+             ('mean l iou {:.2f}\n over l iou {: .2f}\n').format(self.acc_ious_l * 100 / self.seg_total_l, self.cum_l_I * 100 / self.cum_l_U) + \
+              ('mean s iou {:.2f}\n over s iou {: .2f}\n').format(self.acc_ious_s * 100 / self.seg_total_s, self.cum_s_I * 100 / self.cum_s_U)
 
         
 

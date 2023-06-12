@@ -59,11 +59,12 @@ class ReferDataset(data.Dataset):
         self.cls_atten_masks = []
 
         self.eval_mode = eval_mode
-        self.nouse = ['the', 'to', 'one', '？']
+
         # if we are testing on a dataset, test all sentences of an object;
         # o/w, we are validating during training, randomly sample one sentence for efficiency
 
-        # subject_dict = {}
+
+        # f_all = open(args.dataset + ' ' + self.split + '_'+ 'all_sent.txt', 'w')
 
         for r in ref_ids:
             ref = self.refer.Refs[r]
@@ -78,8 +79,13 @@ class ReferDataset(data.Dataset):
 
             for i, (el, sent_id) in enumerate(zip(ref['sentences'], ref['sent_ids'])):
 
-                sentence_raw = el['raw']
-                sentence_raw_sent = el['sent']
+                # sentence_raw = el['raw']
+                # sentence_raw_sent = el['sent']
+
+                sentence_raw = el['sent']
+                sentence_raw_sent = el['raw']
+                # f_all.write(sentence_raw_sent + '\n')
+                # continue
                 if args.use_new == 'new':
                     # 原sentence长度
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
@@ -97,47 +103,33 @@ class ReferDataset(data.Dataset):
                 elif args.use_new == 'new_no_cls':
                     # 原sentence长度
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                    if temp_len > 3:
+                    if temp_len > args.len_thresh:
                         # 找到主语
                         sub_index = sentence_raw.find(' X ')
-                        subject = sentence_raw[(sub_index + 3):]
-
-                   
-
-                        if subject[:4] == 'none':
+                        if sub_index > 0:
+                            subject = sentence_raw[(sub_index + 3):]
+                  
+                        if sub_index == -1:
                             subject = ''
                             if temp_len > self.max_tokens:
                                 sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
                                 temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                            # sentence_raw = sentence_raw_sent
-                            temp_len = -temp_len
                             # # 没有主语就不加X
-                            # sentence_len.append(-temp_len)
-                            # if temp_len > 3:
-                            #     sub_num += 1
-                            print(sentence_raw + ' '+ self.classes[ref['category_id']])
+                            temp_len = -temp_len
+
+                            # print(sentence_raw + ' '+ self.classes[ref['category_id']])
                         else:
                             # 句子太长对句子进行截取
                             if temp_len > self.max_tokens:
                                 sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
                                 temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                             subject = subject.lower()
-                            if temp_len > 3:
-                                if subject in subject_dict:
-                                    subject_dict[subject] += 1
-                                else:
-                                    subject_dict[subject] = 1
-                            # if subject + '_' + self.classes[ref['category_id']] in subject_dict:
-                            #     subject_dict[subject + '_' + self.classes[ref['category_id']]] += 1
-                            # else:
-                            #     subject_dict[subject + '_' + self.classes[ref['category_id']]] = 1
                             # 加上主语
                             sentence_raw_sent = sentence_raw_sent + ' X ' + subject
                     sentence_raw = sentence_raw_sent
+                    # el['sent'] =  sentence_raw_sent
                     sentence_len.append(temp_len)
-                        
 
-                    # print(sentence_raw)
                 else:
                     ## add text prompt
                     if args.NCL > 0: 
@@ -149,7 +141,8 @@ class ReferDataset(data.Dataset):
                             print(sentence_raw)
                         sentence_raw =  sentence_raw + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + self.classes[ref['category_id']]
                     else:
-                        sentence_len.append(-1)
+                        temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                        sentence_len.append(temp_len)
                     # print(sentence_raw)
 
                 attention_mask = [0] * self.max_tokens
@@ -184,6 +177,8 @@ class ReferDataset(data.Dataset):
             self.sentence_len.append(sentence_len)
             self.input_cls_ids.append(cls_for_ref)
             self.cls_atten_masks.append(cls_atten_for_ref)
+
+        # f_all.close()
         # with open('subject_dict_' + args.dataset + '.pkl', 'wb') as f_s:
         #     pickle.dump(subject_dict, f_s)
 
@@ -274,7 +269,7 @@ if __name__ == '__main__':
 
 
     rdataset = ReferDataset(args,
-                      split='testB',
+                      split='testA',
                       image_transforms=tfm,
                       target_transforms=None,
                       )

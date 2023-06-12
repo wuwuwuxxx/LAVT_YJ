@@ -57,14 +57,16 @@ def cls_noun(cls, sentence):
     raw_sentence = sentence
     sentence = sentence.split()
     for item in sentence:
-        if item in cls.split() and len(item) >2:
+        if item.lower() in cls.split() and len(item) >2:
             return item
-        if consistent_with_cls(cls, item):
+        if consistent_with_cls(cls, item.lower()):
+            if item.lower() == 'brown' or item.lower() == 'lower' or item.lower() == 'have':
+                continue
             return item 
-        if lev.distance(item, cls) < 2 and len(cls) > 2:
+        if lev.distance(item.lower(), cls) < 2 and len(cls) > 2:
             print(item+', ', cls+', ', sentence)
             return cls
-        if lev.distance(item, cls) < 3 and len(cls) > 5:
+        if lev.distance(item.lower(), cls) < 3 and len(cls) > 5:
             print(item+', ', cls+', ', sentence)
             return cls
         
@@ -74,136 +76,131 @@ def cls_noun(cls, sentence):
         # 交通工具
         if  cls in ['car', 'bicycle', 'truck', 'motorcycle', 'train', 'boat', 'bus', 'surfboard'] :
             for item in sentence:
-                if item in ['van', 'car', 'truck', 'bike', 'bikes', 'truck', 'cart', 'trailer', 'bmw', 'wagon', 'vehicle',  'suv', 'boat', 'ship', 'chevrolet', 
+                if item.lower() in ['van', 'car', 'truck', 'bike', 'bikes', 'truck', 'cart', 'trailer', 'bmw', 'wagon', 'vehicle',  'suv', 'boat', 'ship', 'chevrolet', 
                            'toyota', 'honda', 'yacht', 'bicycle' ,'motorcycle', 'train', 'jeep', 'skis', 'trolley', 'tram', 'bus', 
-                           'scooter', 'ambulance', 'crane', 'dirtbike', 'surfboard', 'ford', 'skateboard', 'sail', 'tractor', 'board']:
+                           'scooter', 'ambulance', 'crane', 'dirtbike', 'surfboard', 'ford', 'skateboard', 'sail', 'tractor', 'board', 'raft']:
                     return item
         # 飞机
         if cls in ['airplane']:
             for item in sentence:
-                if item in ['aircraft','helicopter', 'flight', 'plain']:
+                if item.lower() in ['aircraft','helicopter', 'flight', 'plain']:
                     return item
         # 甜点
         if cls in ['donut', 'cake', 'sandwich', 'pizza', 'hot dog']:
-            if 'ice cream' in raw_sentence:
+            if 'ice cream' in raw_sentence.lower():
                 return 'ice cream'
-            if 'hot dog' in raw_sentence:
+            if 'hot dog' in raw_sentence.lower():
                 return 'hot dog'
             for item in sentence:
-                if item in ['doughnut', 'cookie', 'donut', 'cake', 'bread', 'sandwich', 'pizza', 'cupcake', 'pastry', 'dessert', 'peach', 
+                if item.lower() in ['doughnut', 'cookie', 'donut', 'cake', 'bread', 'sandwich', 'pizza', 'cupcake', 'pastry', 'dessert', 'peach', 
                             'food', 'chocolate', 'muffin', 'sausage', 'pie', 'fish', 'burger', 'hotdog', 'pumpkin', 'loaf', 'salad', 'toast',
                             'carrots', 'carrot', 'taco', 'tacos', 'waffles', 'waffle', 'bagel']:
                     return item
-        if cls in ['donut', 'cake', 'sandwich', 'pizza', 'hot dog']:
-            for item in sentence:
-                if item in ['piece', 'slice']:
-                    return item
+
         if cls in ['orange', 'apple', 'banana']:
             for item in sentence:
-                if item in ['lemon', 'lemos', 'lime', 'limes', 'fruit', 'fruits','peaches', 'orange', 'apple', 'slice', 'food', 'slices']:
+                if item.lower() in ['lemon', 'lemos', 'lime', 'limes', 'fruit', 'fruits','peaches', 'orange', 'apple', 'food']:
                     return item
         if cls in ['carrot', 'broccoli']:
-            if 'french fry' in raw_sentence:
+            if 'french fry' in raw_sentence.lower():
                 return 'french fry'
             for item in sentence:
-                if item in ['carrot', 'carrots', 'broccoli', 'potatoes', 'cauliflower', 'vegetable', 'vegetables', 'cauli', 'fruit', 'fries', 'veggie']:
+                if item.lower() in ['carrot', 'carrots', 'broccoli', 'potatoes', 'cauliflower', 'vegetable', 'vegetables', 'cauli', 'fruit', 'fries', 'veggie']:
                     return item
-            for item in sentence:
-                if item in ['slice', 'piece']:
-                    return item
+
         
         
         # 牛马羊 
         if cls in ['sheep', 'cow', 'horse', 'giraffe', 'zebra', 'bear', 'elephant']:
             for item in sentence:
-                if item in ['sheep', 'cow', 'lamb', 'goat', 'bull', 'animal', 'animals', 'buffalo', 'ram',
+                if item.lower() in ['sheep', 'cow', 'lamb', 'goat', 'bull', 'animal', 'animals', 'buffalo', 'ram',
                              'bulls', 'donkey', 'foal', 'giraffe', 'zebra', 'horn', 'deer', 'yak', 'donkeys', 'horse', 'trunk', 'butt']:
                     return item
                 
         if cls in ['teddy bear', 'cat', 'dog']:
             for item in sentence:
-                if item in ['teddybears', 'bears', 'bear', 'animal', 'animals', 'toy', 'doll', 'kola', 'bulls', 'donkey', 'cat', 
+                if item.lower() in ['teddybears', 'bears', 'bear', 'animal', 'animals', 'toy', 'doll', 'kola', 'bulls', 'donkey', 'cat', 
                             'animal', 'dog', 'monkey', 'puppy', 'lamb', 'panda', 'pig', 'toys', 'rabbit', 'kitten', 'cow', 'kitty', 'snoopy']:
                     return item
                 
         if cls in ['bird']:
             for item in sentence:
-                if item in ['chicken', 'crow', 'pegeon', 'ostrich', 'peacock', 'animal', 'bird']:
+                if item.lower() in ['chicken', 'crow', 'pegeon', 'ostrich', 'peacock', 'animal', 'bird']:
                     return item
         # 椅子
         if cls in ['chair', 'bench', 'sofa', 'couch']:
             for item in sentence:
-                if item in ['chair', 'bench', 'sofa', 'desk', 'stool', 'couch', 'armchair', 'seat', 'loveseat']:
+                if item.lower() in ['chair', 'bench', 'sofa', 'desk', 'stool', 'couch', 'armchair', 'seat', 'loveseat']:
                     return item 
         # 包
         if cls in ['backpack', 'handbag', 'suitcase']:
             for item in sentence:
-                if item in ['bag', 'suitcase', 'backpack', 'luggage', 'purse', 'box', 'handbag',]:
+                if item.lower() in ['bag', 'suitcase', 'backpack', 'luggage', 'purse', 'box', 'handbag',]:
                     return item 
         # 电子产品
         if cls in ['tv', 'laptop', 'keyboard']:
             for item in sentence:
-                if item in ['laptop', 'computer', 'screen', 'monitor', 'tv', 'keyboard', 'ipad', 'television', 'imac', 'tablet', 'device', 'macbook', 'desktop']:
+                if item.lower() in ['laptop', 'computer', 'screen', 'monitor', 'tv', 'keyboard', 'ipad', 'television', 'imac', 'tablet', 'device', 'macbook', 'desktop']:
                     return item
         # 容器     
         if cls in ['cup', 'bowl', 'bottle', 'vase', 'wine glass']:
-            if 'wine glass' in raw_sentence:
+            if 'wine glass' in raw_sentence.lower():
                 return 'wine glass'
             for item in sentence:
-                if item in ['container', 'glass', 'mug', 'cup', 'bowl', 'plate', 'dish', 'canister', 'jar', 'pan', 
+                if item.lower() in ['container', 'glass', 'mug', 'cup', 'bowl', 'plate', 'dish', 'canister', 'jar', 'pan', 
                             'pitcher', 'pot', 'tray', 'food', 'bucket', 'drink', 'basket', 'holder', 'box', 
-                            'bottle','yogurt', 'can', 'coffee', 'vase', 'carrot','jug' , 'carrots', 'glasses', 'peaches',
+                            'bottle', 'can', 'coffee', 'vase', 'carrot','jug' , 'carrots', 'glasses', 'peaches',
                             'salad', 'beer', 'fries', 'water', 'cups', 'juice']:
                     return item
         # 植物
         if cls in ['potted plant']:
             for item in sentence:
-                if item in ['flower', 'flowers', 'tree', 'trees','houseplant', 'houseplants', 'plants', 'bush', 'roses', 'rose', 'vase', 'jar', 'planter', 'leaf', 'leaves', 'plant', 'pot']:
+                if item.lower() in ['flower', 'flowers', 'tree', 'trees','houseplant', 'houseplants', 'plants', 'bush', 'roses', 'rose', 'vase', 'jar', 'planter', 'leaf', 'leaves', 'plant', 'pot']:
                     return item
         # 滑雪板
         if cls in ['snowboard']:
             for item in sentence:
-                if item in ['snowboard', 'ski', 'skis', 'board']:
+                if item.lower() in ['snowboard', 'ski', 'skis', 'board']:
                     return item
         if cls in ['toilet', 'sink']:
             for item in sentence:
-                if item in  ['urinal', 'urinals', 'toilet', 'sink', 'bathtub', 'pisser']:
+                if item.lower() in  ['urinal', 'urinals', 'toilet', 'sink', 'bathtub', 'pisser']:
                     return item
         # 微波炉
         if cls in ['oven', 'microwave']:
             for item in sentence:
-                if item in ['stove', 'dishwasher', 'machine', 'microwave', 'oven', 'burners', 'burner']:
+                if item.lower() in ['stove', 'dishwasher', 'machine', 'microwave', 'oven', 'burners', 'burner']:
                     return item
         # 手机
         if cls in ['cell phone', 'remote']:
-            if 'cell phone' in raw_sentence:
+            if 'cell phone' in raw_sentence.lower():
                 return 'cell phone'
             for item in sentence:
-                if item in ['phone', 'tablet', 'ipad', 'mobile', 'controller', 'laptop', 'iphone', 'camera', 'remote', 'device']:
+                if item.lower() in ['phone', 'tablet', 'ipad', 'mobile', 'controller', 'laptop', 'iphone', 'camera', 'remote', 'device']:
                     return item
         # 书
         if cls in ['book']:
             for item in sentence:
-                if item in ['magazine', 'magazines', 'paper', 'papers', 'newspaper', 'book']:
+                if item.lower() in ['magazine', 'magazines', 'paper', 'papers', 'newspaper', 'book']:
                     return item
         # 餐具
         if cls in ['spoon', 'fork', 'knife']:
             for item in sentence:
-                if item in ['fork', 'paper', 'newspaper', 'ladle', 'server', 'sword', 'knife', 'scooper', 'spoon', 'tool']:
+                if item.lower() in ['fork', 'paper', 'newspaper', 'ladle', 'server', 'sword', 'knife', 'scooper', 'spoon', 'tool']:
                     return item
         # 桌子
         if cls in ['dining table', 'bed']:
-            if 'place mat' in raw_sentence:
+            if 'place mat' in raw_sentence.lower():
                 return 'placemat'
             for item in sentence:
-                if item in ['table', 'dish', 'plate', 'plates','pizza', 'tray', 'dessert', 'tabletop', 'placemat', 'knife', 'countertop',
+                if item.lower() in ['table', 'dish', 'plate', 'plates','pizza', 'tray', 'dessert', 'tabletop', 'placemat', 'knife', 'countertop',
                              'desk', 'pillow', 'pillows', 'bowl', 'bed', 'blanket', 'platter', 'cup', 'bunk', 'glasses', 'orange', 'carpet', 
-                             'dishes', 'food', 'counter', 'tablecloth', 'bottle', 'matress']:
+                             'dishes', 'counter', 'tablecloth', 'bottle', 'matrass']:
                     return item
                 
         if cls in ['traffic light', 'parking meter']:
             for item in sentence:
-                if item in ['sign', 'light', 'lights', 'signal', 'stoplight', 'meter']:
+                if item.lower() in ['sign', 'light', 'lights', 'signal', 'stoplight', 'meter']:
                     return item
 
     else:
@@ -212,7 +209,7 @@ def cls_noun(cls, sentence):
         if 'male' in sentence:
             return 'male'
         for item in sentence:
-            if item in ['hand', 'hands', 'foot', 'hat', 'fireman', 'dress', 'clothing', 'arm', 'shoulder', 'driver', 
+            if item.lower() in ['hand', 'hands', 'foot', 'hat', 'fireman', 'dress', 'clothing', 'arm', 'shoulder', 'driver', 
                         'shirt', 'head', 'thumb', 'sneakers', 'jacket', 'people', 'finger', 'legs', 'leg', 'pants',
                           'men', 'skiier', 'hair', 'coat', 'sweatshirt', 'face', 'shoe', 'arms', 'jeans', 'shorts', 
                           'scarf', 'police', 'hoodie', 'jersey', 'suit', 'clothes', 'socks', 'fingers', 'shoes', 'sweater',
