@@ -356,7 +356,58 @@ class RefIou:
              ('mean l iou {:.2f}\n over l iou {: .2f}\n').format(self.acc_ious_l * 100 / self.seg_total_l, self.cum_l_I * 100 / self.cum_l_U) + \
               ('mean s iou {:.2f}\n over s iou {: .2f}\n').format(self.acc_ious_s * 100 / self.seg_total_s, self.cum_s_I * 100 / self.cum_s_U)
 
+import warnings
+class PolyLR(torch.optim.lr_scheduler.LambdaLR):
+    def __init__(self, optimizer, lr_lambda, last_epoch=-1, verbose=False, min_lr=1e-4):
+        self.min_lr = min_lr
+        super(PolyLR, self).__init__(optimizer, lr_lambda, last_epoch, verbose)
         
+    def get_lr(self):
+        if not self._get_lr_called_within_step:
+            warnings.warn("To get the last learning rate computed by the scheduler, "
+                          "please use `get_last_lr()`.")
+
+        return [((base_lr - self.min_lr) * lmbda(self.last_epoch) + self.min_lr)
+                for lmbda, base_lr in zip(self.lr_lambdas, self.base_lrs)]
+
+
+def get_lr_scheduler(args, optimizer, iters_per_epoch):
+    
+    args.lr_scheduler = args.lr_scheduler.lower()
+    if args.lr_scheduler == "multisteplr":
+        main_lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=list([iters_per_epoch * i for i in args.lr_steps]), gamma=args.lr_gamma)
+    elif args.lr_scheduler == "cosineannealinglr":
+        main_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max= (args.epochs - args.lr_warmup_epochs) * iters_per_epoch, eta_min = 1e-6)
+    elif args.lr_scheduler == "polylr":
+        main_lr_scheduler = PolyLR(optimizer, lambda x: (1 - x / (iters_per_epoch * (args.epochs - args.lr_warmup_epochs))) ** 0.9, min_lr=args.min_lr)
+    else:
+        raise RuntimeError(
+            f"Invalid lr scheduler '{args.lr_scheduler}'. Only MultiStepLR and CosineAnnealingLR are supported."
+        )
+        
+    if args.lr_warmup_epochs > 0:
+        warmup_iters = iters_per_epoch * args.lr_warmup_epochs
+        args.lr_warmup_method = args.lr_warmup_method.lower()
+        if args.lr_warmup_method == "linear":
+            warmup_lr_scheduler = torch.optim.lr_scheduler.LinearLR(
+                optimizer, start_factor=args.lr_warmup_decay, total_iters=warmup_iters
+            )
+        elif args.lr_warmup_method == "constant":
+            warmup_lr_scheduler = torch.optim.lr_scheduler.ConstantLR(
+                optimizer, factor=args.lr_warmup_decay, total_iters=warmup_iters
+            )
+        else:
+            raise RuntimeError(
+                f"Invalid warmup lr method '{args.lr_warmup_method}'. Only linear and constant are supported."
+            )
+        lr_scheduler = torch.optim.lr_scheduler.SequentialLR(
+            optimizer, schedulers=[warmup_lr_scheduler, main_lr_scheduler], milestones=[warmup_iters]
+        )
+    else:
+        lr_scheduler = main_lr_scheduler
+        
+    return lr_scheduler
+
 
 
 @torch.no_grad()        

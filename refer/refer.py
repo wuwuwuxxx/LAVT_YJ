@@ -65,7 +65,7 @@ class REFER:
         if use_new == 'new':
             ref_file = osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p')
         elif use_new == 'new_no_cls':
-            ref_file = osp.join(self.DATA_DIR, 'new_rule_4_refs(' + splitBy + ').p')
+            ref_file = osp.join(self.DATA_DIR, 'new_rule_5_refs(' + splitBy + ').p')
         else:
             ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')
         
@@ -90,7 +90,7 @@ class REFER:
             self.nlp = load_nlp()
             self.saveChangeRef()
 
-            with open(osp.join(self.DATA_DIR, 'new_rule_4_refs(' + splitBy + ').p'), 'wb') as f_new:
+            with open(osp.join(self.DATA_DIR, 'new_rule_5_refs(' + splitBy + ').p'), 'wb') as f_new:
                 pickle.dump(self.data['refs'], f_new)
                 
                 
@@ -211,16 +211,16 @@ class REFER:
                         if sub_item is None:
                             f.write(sentence + '/' + cls_name +'\n')
                     # 用spacy再提取
-                    # if sub_item is None:
-                    #     sub_item = paper(doc)
-                    #     if sub_item is not None:
-                    #         sub_item = sub_item.text
-                    #     else:
-                    #         sub_item = 'none'
-                    #         f.write(sentence + '/' + cls_name +'\n')
-                    if sub_item is not None:
-                        target_info = target_info + sub_item
-                        sent['sent'] = sent['sent'] + target_info
+                    if sub_item is None:
+                        sub_item = paper(doc)
+                        if sub_item is not None:
+                            sub_item = sub_item.text
+                        else:
+                            sub_item = 'none'
+                            f.write(sentence + '/' + cls_name +'\n')
+                    # if sub_item is not None:
+                    target_info = target_info + sub_item
+                    sent['sent'] = sent['sent'] + target_info
             # print(ref['sentences'])
         # with open('right_' + self.data['dataset'] + '.pkl', 'wb') as f_r:
         #     pickle.dump(right, f_r)
@@ -420,7 +420,7 @@ class REFER:
 if __name__ == '__main__':
 
     data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
-    refer = REFER(data_root, dataset='refcoco+', splitBy='unc')
+    refer = REFER(data_root, dataset='refcocog', splitBy='google')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='val')

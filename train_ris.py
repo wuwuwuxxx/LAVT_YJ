@@ -21,7 +21,7 @@ import torch.nn.functional as F
 
 import gc
 from collections import OrderedDict
-
+import random
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -139,7 +139,9 @@ def evaluate(model, data_loader, bert_model, ctx=None, args=None):
 
 def main(args):
 
-
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     if args.method == 'cls_guide_gt':
         from train_cls_guide_gt import train_one_epoch, criterion
     elif args.method == 'cls_guide':
@@ -164,8 +166,8 @@ def main(args):
 
 
     if args.distributed:
-        # train_sampler = utils.DistributedSampler_LEN(dataset)
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        train_sampler = utils.DistributedSampler_LEN(dataset)
+        # train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
         test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test, shuffle=False)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
@@ -265,9 +267,13 @@ def main(args):
                                   amsgrad=args.amsgrad
                                   )
 
-    # learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                     lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
+    # # learning rate scheduler
+    # lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+    #                                                  lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
+    
+    iters_per_epoch = len(data_loader)
+    print(iters_per_epoch)
+    lr_scheduler = utils.get_lr_scheduler(args, optimizer, iters_per_epoch)
 
     # housekeeping
     start_time = time.time()
@@ -334,6 +340,7 @@ def main(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
+    print('best iou: ', best_oIoU)
 
 
 if __name__ == "__main__":

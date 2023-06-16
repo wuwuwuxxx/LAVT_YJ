@@ -71,7 +71,7 @@ def scale_img_back(data,output_gpu=True,device=torch.device(0)):
     # return tmp.permute(0,3,1,2)
     return tmp
 
-def evaluate(model, data_loader, bert_model, device, dataset_test):
+def evaluate(model, data_loader, bert_model, device, dataset_test, args):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
@@ -83,7 +83,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
     mean_IoU = []
     header = 'Test:'
 
-    f_sent = open('low_sent_4.txt', 'w')
+    f_sent = open('low_sent_paper.txt', 'w')
     num_short, num_long = 0, 0
     mean_sIou, mean_lIou = [], []
     cum_s_I, cum_s_U = 0, 0
@@ -106,12 +106,12 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                 if bert_model is not None:
                     last_hidden_states = bert_model(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
                     temp_len = sentences_len[0][0][j] + 1
-                    if  abs(temp_len - 1) <= 7:
-                        continue
+                    # if  abs(temp_len - 1) <= args.len_thresh:
+                    #     continue
                     if args.NCL > 0:
                         for i in range(sentences_len.size(0)):  
                             # temp_len = sentences_len[i][0][j] + 1
-                            if (temp_len + args.NCL) <= args.max_tokens and temp_len > 4:
+                            if (temp_len + args.NCL) <= args.max_tokens and temp_len > args.len_thresh + 1:
                             # print(temp_len)
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = model.ctx
 
@@ -129,14 +129,14 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                 else:
                     this_iou = I*1.0/U
                 mean_IoU.append(this_iou)
-                if abs(temp_len - 1) > 7:
+                if abs(temp_len - 1) > args.len_thresh:
                     mean_lIou.append(this_iou)
                     num_long += 1
                 else:
                     mean_sIou.append(this_iou)
                     num_short += 1
                 if save_result:
-                    if this_iou >= 0 and abs(temp_len - 1) > 7:
+                    if this_iou >= 0 and abs(temp_len - 1) > args.len_thresh:
                         # this_image = scale_img_back(image) * 255
                         # this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
                         # result = overlay_davis(this_image, output_mask.squeeze())
@@ -159,7 +159,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test):
                         
                 cum_I += I
                 cum_U += U
-                if abs(temp_len - 1) > 7:
+                if abs(temp_len - 1) > args.len_thresh:
                     cum_l_I += I
                     cum_l_U += U
                 else:
@@ -238,7 +238,7 @@ def main(args):
     else:
         bert_model = None
 
-    evaluate(model, data_loader_test, bert_model, device, dataset_test)
+    evaluate(model, data_loader_test, bert_model, device, dataset_test, args)
 
 
 if __name__ == "__main__":

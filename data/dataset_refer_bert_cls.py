@@ -79,14 +79,11 @@ class ReferDataset(data.Dataset):
 
             for i, (el, sent_id) in enumerate(zip(ref['sentences'], ref['sent_ids'])):
 
-                # sentence_raw = el['raw']
-                # sentence_raw_sent = el['sent']
-
-                sentence_raw = el['sent']
-                sentence_raw_sent = el['raw']
                 # f_all.write(sentence_raw_sent + '\n')
                 # continue
                 if args.use_new == 'new':
+                    sentence_raw = el['raw']
+                    sentence_raw_sent = el['sent']
                     # 原sentence长度
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                     # 找到主语
@@ -94,15 +91,19 @@ class ReferDataset(data.Dataset):
                     subject = sentence_raw[(sub_index + 3):]
                     # 句子太长对句子进行截取
                     if temp_len > self.max_tokens:
-                        sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                        sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - args.NCL - 2])
                         temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                     sentence_len.append(temp_len)
                     # 加上主语
-                    sentence_raw_sent = sentence_raw_sent + ' X ' + subject
+                    sentence_raw_sent = sentence_raw_sent + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + subject
                     sentence_raw = sentence_raw_sent
+                    # print(sentence_raw)
                 elif args.use_new == 'new_no_cls':
                     # 原sentence长度
+                    sentence_raw = el['sent']
+                    sentence_raw_sent = el['raw']
                     temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                    # print(temp_len)
                     if temp_len > args.len_thresh:
                         # 找到主语
                         sub_index = sentence_raw.find(' X ')
@@ -112,7 +113,7 @@ class ReferDataset(data.Dataset):
                         if sub_index == -1:
                             subject = ''
                             if temp_len > self.max_tokens:
-                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - args.NCL - 2])
                                 temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                             # # 没有主语就不加X
                             temp_len = -temp_len
@@ -121,16 +122,22 @@ class ReferDataset(data.Dataset):
                         else:
                             # 句子太长对句子进行截取
                             if temp_len > self.max_tokens:
-                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - 1 - 2])
+                                sentence_raw_sent = ' '.join(sentence_raw_sent.split(' ')[:self.max_tokens - args.NCL - 2])
                                 temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
-                            subject = subject.lower()
+                            # subject = subject.lower()
                             # 加上主语
-                            sentence_raw_sent = sentence_raw_sent + ' X ' + subject
+                            sentence_raw_sent = sentence_raw_sent + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + subject
                     sentence_raw = sentence_raw_sent
-                    # el['sent'] =  sentence_raw_sent
+                    print(sentence_raw)
+                    # f_all.write(sentence_raw_sent + '\n')
+                    # continue
+                    el['sent'] =  sentence_raw_sent
                     sentence_len.append(temp_len)
 
                 else:
+                    sentence_raw = el['raw']
+                    sentence_raw_sent = el['sent']
+
                     ## add text prompt
                     if args.NCL > 0: 
                         temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
@@ -143,15 +150,15 @@ class ReferDataset(data.Dataset):
                     else:
                         temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                         sentence_len.append(temp_len)
+
+                    sentence_raw = sentence_raw_sent
                     # print(sentence_raw)
 
                 attention_mask = [0] * self.max_tokens
                 padded_input_ids = [0] * self.max_tokens
 
                 input_ids = self.tokenizer.encode(text=sentence_raw, add_special_tokens=True)
-                
-                
-
+                # print(len(input_ids))
                 # truncation of tokens
                 input_ids = input_ids[:self.max_tokens]
 
@@ -269,7 +276,7 @@ if __name__ == '__main__':
 
 
     rdataset = ReferDataset(args,
-                      split='testA',
+                      split='train',
                       image_transforms=tfm,
                       target_transforms=None,
                       )
