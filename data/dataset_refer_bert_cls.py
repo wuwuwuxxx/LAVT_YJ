@@ -128,7 +128,7 @@ class ReferDataset(data.Dataset):
                             # 加上主语
                             sentence_raw_sent = sentence_raw_sent + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + subject
                     sentence_raw = sentence_raw_sent
-                    print(sentence_raw)
+                    # print(sentence_raw)
                     # f_all.write(sentence_raw_sent + '\n')
                     # continue
                     el['sent'] =  sentence_raw_sent
@@ -151,7 +151,7 @@ class ReferDataset(data.Dataset):
                         temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
                         sentence_len.append(temp_len)
 
-                    sentence_raw = sentence_raw_sent
+                    # sentence_raw = sentence_raw_sent
                     # print(sentence_raw)
 
                 attention_mask = [0] * self.max_tokens
