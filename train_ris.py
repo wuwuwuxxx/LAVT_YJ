@@ -142,9 +142,11 @@ def evaluate(model, data_loader, bert_model, ctx=None, args=None):
 
 def main(args):
 
-    torch.manual_seed(args.seed)
-    random.seed(args.seed)
-    np.random.seed(args.seed)
+    if args.seed != -1:
+        torch.manual_seed(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+
     if args.method == 'cls_guide_gt':
         from train_cls_guide_gt import train_one_epoch, criterion
     elif args.method == 'cls_guide':

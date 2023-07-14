@@ -72,6 +72,8 @@ def cls_noun(cls, sentence):
             print(item+', ', cls+', ', sentence)
             return cls
         
+
+        
     if cls != 'person':
 
      
@@ -230,8 +232,23 @@ def cls_noun(cls, sentence):
 
     return None
 
+def cls_lev(cls, sentence):
 
+    sentence = sentence.replace('.', ' ').replace(',', ' ')
+    sentence = sentence.lower()
+    raw_sentence = sentence
+    sentence = sentence.split()
+    for item in sentence:
+        if lev.distance(item.lower(), cls) < 2 and len(cls) > 3:
+            if item != cls:
+                print(item+', ', cls+', ', sentence)
+            return cls
+        if lev.distance(item.lower(), cls) < 3 and len(cls) > 5:
+            if item != cls:
+                print(item+', ', cls+', ', sentence)
+            return cls
 
+    return None
 def cal_sim(nlp, cls, doc):
     token_cls = nlp(cls)
     best_sim = 0
@@ -249,6 +266,20 @@ def cal_sim(nlp, cls, doc):
         return best_words
     else:
         return None        
+    
+
+def get_model(file):
+    dict_sen = {}
+    with open(file, 'r') as f_d:
+        lines = f_d.readlines()
+        for l in lines:
+            l = l.rstrip()
+            sub_index = l.find(' X ')
+            if sub_index != -1:
+                sent = l[:sub_index]
+                cls_name = l[sub_index+3:]
+                dict_sen[sent] = cls_name
+    return dict_sen
 
 if __name__ == '__main__':
     cls = 'person'

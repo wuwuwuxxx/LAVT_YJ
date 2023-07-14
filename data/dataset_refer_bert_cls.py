@@ -148,7 +148,7 @@ class ReferDataset(data.Dataset):
                             print(sentence_raw)
                         sentence_raw =  sentence_raw + ' ' +  ' '.join(["X"] * args.NCL) + ' ' + self.classes[ref['category_id']]
                     else:
-                        temp_len = len(self.tokenizer.encode(text=sentence_raw_sent, add_special_tokens=True)) - 2
+                        temp_len = len(self.tokenizer.encode(text=sentence_raw, add_special_tokens=True)) - 2
                         sentence_len.append(temp_len)
 
                     # sentence_raw = sentence_raw_sent

@@ -1,10 +1,13 @@
-image_path = './demo/ADE_val_00000012.jpg'
-sentence = 'the person'
-weights = './checkpoints/model_best_refcoco+_cls_guide_gt_tiny_22.pth'
-device = 'cuda:0'
+# image_path = '/home/AI-T1/DatasetPublic/robseg/SSeg_datasets/coco/train2017/000000013763.jpg'
+image_path = '../test_robot/seg/0100_0000.png'
+# sentence = 'elephant \'s tail'
+sentence = 'a pair of gold pliers'
+# sentence = 'the red fruit near the gun'
+weights = './checkpoints/gref_umd.pth'
+device = 'cuda:1'
 
 # pre-process the input image
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import torchvision.transforms as T
 import numpy as np
 img = Image.open(image_path).convert("RGB")
@@ -48,7 +51,7 @@ from lib import segmentation
 
 
 class args:
-    swin_type = 'tiny'
+    swin_type = 'base'
     window12 = True
     mha = ''
     fusion_drop = 0.0
@@ -67,6 +70,8 @@ single_model.load_state_dict(checkpoint['model'])
 model = single_model.to(device)
 bert_model = single_bert_model.to(device)
 
+model.eval()
+bert_model.eval()
 
 # inference
 import torch.nn.functional as F
@@ -80,7 +85,7 @@ output = output.cpu().data.numpy()  # (orig_h, orig_w)
 
 
 # show/save results
-def overlay_davis(image, mask, colors=[[0, 0, 0], [255, 0, 0]], cscale=1, alpha=0.4):
+def overlay_davis(image, mask, colors=[[0, 0, 0], [255, 0, 0]], cscale=1, alpha=0.5):
     from scipy.ndimage.morphology import binary_dilation
 
     colors = np.reshape(colors, (-1, 3))
@@ -102,17 +107,31 @@ def overlay_davis(image, mask, colors=[[0, 0, 0], [255, 0, 0]], cscale=1, alpha=
         # countours = cv2.dilate(binary_mask, cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))) - binary_mask
         im_overlay[countours, :] = 0
 
-    return im_overlay.astype(image.dtype)
+    # 将sentence放在图片上
+    im_overlay = Image.fromarray(im_overlay.astype(image.dtype))
+    chars_x, chars_y = 20, 20
+    font = ImageFont.truetype("arial.ttf", 
+        size=np.floor(3e-2 * 1000 + 0.5).astype('int32')
+    )  # 
 
+    img_draw = ImageDraw.Draw(im_overlay)  
+    label_size = img_draw.textsize(sentence, font)
+    img_draw.rectangle(
+        [chars_x, chars_y, chars_x + label_size[0] , chars_y + label_size[1]],
+        outline=(0, 50, 128),
+        width=1,
+        fill=(0, 50, 128)  # 用于填充
+    )
+
+    img_draw.text([chars_x, chars_y], sentence, fill=(255, 0, 0), font=font)
+    return im_overlay
 
 output = output.astype(np.uint8)  # (orig_h, orig_w), np.uint8
 # Overlay the mask on the image
 visualization = overlay_davis(img_ndarray, output)  # red
-visualization = Image.fromarray(visualization)
-# show the visualization
-#visualization.show()
-# Save the visualization
-visualization.save('./demo/demo_result.jpg')
+
+image_name = image_path.split('/')[-1][:-4]
+visualization.save('./demo/' + image_name + '_'+ sentence + '.jpg')
 
 
 

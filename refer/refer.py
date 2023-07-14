@@ -65,7 +65,7 @@ class REFER:
         if use_new == 'new':
             ref_file = osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p')
         elif use_new == 'new_no_cls':
-            ref_file = osp.join(self.DATA_DIR, 'new_rule_5_refs(' + splitBy + ').p')
+            ref_file = osp.join(self.DATA_DIR, 'new_rule_12_refs(' + splitBy + ').p')
         else:
             ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')
         
@@ -88,9 +88,10 @@ class REFER:
         if save_change:
             from ref_utils import load_nlp, paper,  consistent_with_cls
             self.nlp = load_nlp()
-            self.saveChangeRef()
+            # self.saveChangeRef()
+            self.saveClsRef()
 
-            with open(osp.join(self.DATA_DIR, 'new_rule_5_refs(' + splitBy + ').p'), 'wb') as f_new:
+            with open(osp.join(self.DATA_DIR, 'new_rule_12_refs(' + splitBy + ').p'), 'wb') as f_new:
                 pickle.dump(self.data['refs'], f_new)
                 
                 
@@ -227,8 +228,40 @@ class REFER:
         # print(len(self.data['refs']))
                 
                 
+    def saveClsRef(self):
+        from ref_utils import get_model, cls_lev
+        file = '/home/yajie/doctor/RIS/test/bert/refcoco_data_all.txt'
+        sent_dict = get_model(file)
+
+        Cats = {}
+        for cat in self.data['categories']:
+            Cats[cat['id']] = cat['name']
+
+        num_no = 0
+        for j, ref in enumerate(self.data['refs']):
+            # add mapping of sent
+            category_id = ref['category_id']
+            # 类别信息
+            gt_cls_name = Cats[category_id]
+            for i, sent in enumerate(ref['sentences']):
+                raw_sent = sent['raw']
+                cls_name = cls_lev(gt_cls_name, raw_sent)
+                if cls_name != None:
+                    # sent['raw'] = sent['raw'] + ' X ' + cls_name
+                    sent['sent'] = sent['sent'] + ' X ' + cls_name              
+                    continue
+                if raw_sent in sent_dict:
+                    cls_name = sent_dict[raw_sent]
+                    if cls_name != '':
+                        # sent['raw'] = sent['raw'] + ' X ' + cls_name
+                        sent['sent'] = sent['sent'] + ' X ' + cls_name
+                else:
+                    num_no += 1
+                    continue
+        print(num_no)
 
 
+                
 
 
 
@@ -420,7 +453,7 @@ class REFER:
 if __name__ == '__main__':
 
     data_root = '/home/AI-T1/DatasetPublic/RIS/refer/data'
-    refer = REFER(data_root, dataset='refcocog', splitBy='google')
+    refer = REFER(data_root, dataset='refcoco', splitBy='unc')
     ref_ids = refer.getRefIds()
 
     ref_ids = refer.getRefIds(split='val')
