@@ -10,3 +10,5 @@ demo_result.jpg
 *.txt
 *.pkl
 *.log
+*.jpg
+*.png

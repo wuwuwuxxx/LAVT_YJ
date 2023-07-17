@@ -1,8 +1,8 @@
 # image_path = './demo/ADE_val_00000012.jpg'
 # sentence = 'the blue woman'
-image_path = '../test_robot/seg/0100_0000.png'
+image_path = '/home/AI-T1/DatasetPublic/RIS/robot/scene_0100/kinect/rgb_crop/0000.png'
 # sentence = 'the tail of elephant which is not near the person'
-sentence = 'a pair of gold pliers'
+sentence = 'a gold color bottle'
 weights = '/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/refcocog_extract_subject_base_paper_lavt_prompt1_loss1.0_umd_new_no_cls_28_rule/model_best.pth'
 device = 'cuda:1'
 
@@ -40,7 +40,7 @@ sentence_tokenized = tokenizer.encode(text=sentence, add_special_tokens=True)
 temp_len = len(sentence_tokenized)
 
 # 加classname
-sentence = sentence + ' ' +  ' '.join(["X"] * 1) + ' ' + 'pliers'
+sentence = sentence + ' ' +  ' '.join(["X"] * 1) + ' ' + 'bottle'
 sentence_tokenized = tokenizer.encode(text=sentence, add_special_tokens=True)
 sentence_tokenized = sentence_tokenized[:max_tokens]  # if the sentence is longer than 20, then this truncates it to 20 words
 # pad the tokenized sentence
