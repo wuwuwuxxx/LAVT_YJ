@@ -29,16 +29,16 @@
 DATASET=refcocog
 SWIN_TYPE=base
 METHOD=paper
-NCL=1
-MAX_TOKENS=28
+NCL=0
+MAX_TOKENS=25
 LOSS_WEIGHT=1.0
-BRANCH=extract_subject
+BRANCH=cost_aggre
 MODEL=lavt
-USE_NEW=new_no_cls
-SPLIT=google
+USE_NEW=none
+SPLIT=umd
 LEN_THRESH=0
 WARMUP=1
-SEED=531
+SEED=1994
 NAME=${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_WARMUP${WARMUP}
 
 CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12342 train_ris.py \

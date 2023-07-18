@@ -21,7 +21,7 @@ def criterion(input, target):
 
 
 
-def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler, epoch, print_freq,
+def train_one_epoch(args, swin_model, model, criterion, optimizer, data_loader, lr_scheduler, epoch, print_freq,
                     iterations, bert_model, ctx=None):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -29,6 +29,8 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
     header = 'Epoch: [{}]'.format(epoch)
     train_loss = 0
     total_its = 0
+
+    swin_model.eval()
 
     for data in metric_logger.log_every(data_loader, print_freq, header): 
         total_its += 1
@@ -46,6 +48,11 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
         sentences = sentences.squeeze(1)
         attentions = attentions.squeeze(1)
 
+        # 得到guide embedding
+        with torch.no_grad():
+            g_fea = swin_model(image)
+            g_fea = g_fea.detach()
+
         if bert_model is not None:
             last_hidden_states = bert_model(sentences, attention_mask=attentions)[0]  # (6, 10, 768)
 
@@ -60,7 +67,7 @@ def train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler
 
             embedding = last_hidden_states.permute(0, 2, 1)  # (B, 768, N_l) to make Conv1d happy
             attentions = attentions.unsqueeze(dim=-1)  # (batch, N_l, 1)
-            output = model(image, embedding, l_mask=attentions)
+            output = model(image, embedding, l_mask=attentions, g_fea=g_fea)
         else:
             # output = model(image, sentences, l_mask=attentions)
             if args.distributed:

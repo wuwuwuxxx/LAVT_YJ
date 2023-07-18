@@ -32,6 +32,7 @@ def get_dataset(image_set, transform, args):
                       split=image_set,
                       image_transforms=transform,
                       target_transforms=None,
+                    #   eval_mode=False,
                       eval_mode=(image_set != 'train'),
                       )
     num_classes = 2
@@ -67,7 +68,6 @@ def evaluate(model, data_loader, bert_model, ctx=None, args=None):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
-
 
     Refiou = utils.RefIou(args.len_thresh)
     
@@ -186,6 +186,15 @@ def main(args):
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test, batch_size=1, sampler=test_sampler, num_workers=args.workers)
 
+
+    # swin model for embedding guide  只用来提取特征  不做梯度回传
+    swin_model = segmentation.__dict__['swin'](pretrained=args.pretrained_swin_weights,
+                                              args=args)
+    swin_model.cuda()
+    if args.distributed:
+        swin_model = torch.nn.parallel.DistributedDataParallel(swin_model, device_ids=[args.local_rank], find_unused_parameters=True)
+
+
     # model initialization
     print(args.model)
     model = segmentation.__dict__[args.model](pretrained=args.pretrained_swin_weights,
@@ -301,7 +310,7 @@ def main(args):
     for epoch in range(max(0, resume_epoch+1), args.epochs):
         if args.distributed:
             data_loader.sampler.set_epoch(epoch)
-        train_one_epoch(args, model, criterion, optimizer, data_loader, lr_scheduler, epoch, args.print_freq,
+        train_one_epoch(args, swin_model, model, criterion, optimizer, data_loader, lr_scheduler, epoch, args.print_freq,
                         iterations, bert_model, ctx)
         # iou, overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
         overallIoU, overallIoU_l, overallIoU_l_s = evaluate(model, data_loader_test, bert_model, ctx, args)

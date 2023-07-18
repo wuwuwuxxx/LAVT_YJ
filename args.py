@@ -5,7 +5,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description='LAVT training and testing')
     parser.add_argument('--amsgrad', action='store_true',
                         help='if true, set amsgrad to True in an Adam or AdamW optimizer.')
-    parser.add_argument('-b', '--batch-size', default=1, type=int)
+    parser.add_argument('-b', '--batch-size', default=2, type=int)
     parser.add_argument('--bert_tokenizer', default='bert-base-uncased', help='BERT tokenizer')
     parser.add_argument('--ck_bert', default='bert-base-uncased', help='pre-trained BERT weights')
     parser.add_argument('--dataset', default='refcocog', help='refcoco, refcoco+, or refcocog')
@@ -48,7 +48,7 @@ def get_parser():
     parser.add_argument("--dist-url", default="env://", type=str, help="url used to set up distributed training")
 
     parser.add_argument('--ctx_dim', default=768, type=int, help='the dim of prompt')
-    parser.add_argument('--NCL', default=1, type=int, help='the length of prompt')
+    parser.add_argument('--NCL', default=0, type=int, help='the length of prompt')
     parser.add_argument('--max_tokens', default=23, type=int, help='max tokens')
     parser.add_argument('--start_guide_epoch', default=0, type=int, help='start cls guide epoch')
     parser.add_argument('--momentum', default=0.99, type=float, help='model momentum')
@@ -58,7 +58,7 @@ def get_parser():
     
 
     parser.add_argument('--method', default='paper', type=str, help='method use')
-    parser.add_argument('--use_new', default='new_no_cls', type=str, help='method use')
+    parser.add_argument('--use_new', default='none', type=str, help='method use')
     parser.add_argument('--len_thresh', default=0, type=int, help='classifer lr weight')
 
     # seed
