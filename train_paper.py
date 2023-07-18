@@ -51,7 +51,6 @@ def train_one_epoch(args, swin_model, model, criterion, optimizer, data_loader, 
         # 得到guide embedding
         with torch.no_grad():
             g_fea = swin_model(image)
-            g_fea = g_fea.detach()
 
         if bert_model is not None:
             last_hidden_states = bert_model(sentences, attention_mask=attentions)[0]  # (6, 10, 768)

@@ -64,13 +64,15 @@ def get_transform(args):
     return T.Compose(transforms)
 
 
-def evaluate(model, data_loader, bert_model, ctx=None, args=None):
+def evaluate(swin_model, model, data_loader, bert_model, ctx=None, args=None):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
 
     Refiou = utils.RefIou(args.len_thresh)
     
+    swin_model.eval()
+
 
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
@@ -89,6 +91,8 @@ def evaluate(model, data_loader, bert_model, ctx=None, args=None):
             attentions = attentions.squeeze(1)
             sentences_len = sentences_len.squeeze(1)
 
+            g_fea = swin_model(image)
+
             for j in range(sentences.size(-1)):
                 if bert_model is not None:
                     temp_len = sentences_len[0][0][j] + 1
@@ -104,7 +108,7 @@ def evaluate(model, data_loader, bert_model, ctx=None, args=None):
 
                     embedding = last_hidden_states.permute(0, 2, 1)  # (B, 768, N_l) to make Conv1d happy
                     temp_attentions = attentions[:, :, j].unsqueeze(dim=-1)  # (B, N_l, 1)
-                    output = model(image, embedding, l_mask=temp_attentions)
+                    output = model(image, embedding, l_mask=temp_attentions, g_fea=g_fea)
                 else:
                     if args.distributed:
                         last_hidden_states = model.module.text_encoder(sentences[:, :, j], attention_mask=attentions[:, :, j])[0]
@@ -313,7 +317,7 @@ def main(args):
         train_one_epoch(args, swin_model, model, criterion, optimizer, data_loader, lr_scheduler, epoch, args.print_freq,
                         iterations, bert_model, ctx)
         # iou, overallIoU = evaluate(model, data_loader_test, bert_model, ctx)
-        overallIoU, overallIoU_l, overallIoU_l_s = evaluate(model, data_loader_test, bert_model, ctx, args)
+        overallIoU, overallIoU_l, overallIoU_l_s = evaluate(swin_model, model, data_loader_test, bert_model, ctx, args)
         # print('Average object IoU {}'.format(iou))
         # print('Overall IoU {}'.format(overallIoU))
         save_checkpoint = (best_oIoU < overallIoU) 
