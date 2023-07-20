@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image
 import torch.nn.functional as F
 
-save_result = True
+save_result = False
 save_dir = './result/'
 os.makedirs(save_dir, exist_ok=True)
 
@@ -71,10 +71,10 @@ def scale_img_back(data,output_gpu=True,device=torch.device(0)):
     # return tmp.permute(0,3,1,2)
     return tmp
 
-def evaluate(model, data_loader, bert_model, device, dataset_test, args):
+def evaluate(swin_model, model, data_loader, bert_model, device, dataset_test, args):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
-
+    swin_model.eval()
     # evaluation variables
     cum_I, cum_U = 0, 0
     eval_seg_iou_list = [.5, .6, .7, .8, .9]
@@ -100,6 +100,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test, args):
             target = target.cpu().data.numpy()
 
             sentences_len = sentences_len.squeeze(1)
+            g_fea = swin_model(image)
 
             input_shape = image.shape[-2:]
             for j in range(sentences.size(-1)):
@@ -116,7 +117,7 @@ def evaluate(model, data_loader, bert_model, device, dataset_test, args):
                                 last_hidden_states[i][temp_len: (temp_len + args.NCL)] = model.ctx
 
                     embedding = last_hidden_states.permute(0, 2, 1)
-                    output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1))
+                    output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1), g_fea=g_fea)
                     output = F.interpolate(output, size=input_shape, mode='bilinear', align_corners=True)
                 else:
                     output = model(image, sentences[:, :, j], l_mask=attentions[:, :, j])
@@ -225,6 +226,12 @@ def main(args):
     single_model.load_state_dict(checkpoint['model'])
     model = single_model.to(device)
 
+    # swin model for embedding guide  只用来提取特征  不做梯度回传
+    swin_model = segmentation.__dict__['swin'](pretrained=args.pretrained_swin_weights,
+                                              args=args)
+    swin_model.cuda()
+
+
     if args.model != 'lavt_one':
         model_class = BertModel
         single_bert_model = model_class.from_pretrained(args.ck_bert)
@@ -238,12 +245,13 @@ def main(args):
     else:
         bert_model = None
 
-    evaluate(model, data_loader_test, bert_model, device, dataset_test, args)
+    evaluate(swin_model, model, data_loader_test, bert_model, device, dataset_test, args)
 
 
 if __name__ == "__main__":
     from args import get_parser
     parser = get_parser()
     args = parser.parse_args()
+    print(args)
     print('Image size: {}'.format(str(args.img_size)))
     main(args)

@@ -23,14 +23,18 @@ class DoubleConv(nn.Module):
         return self.double_conv(x)
 
 class SimpleDecoding(nn.Module):
-    def __init__(self, c4_dims, factor=2):
+    def __init__(self, c4_dims, factor=2, fea_aggre=False):
         super(SimpleDecoding, self).__init__()
 
         hidden_size = c4_dims//factor
         c4_size = c4_dims
-        c3_size = int(1.125 * c4_dims//(factor**1))
-        c2_size = int(1.125 * c4_dims//(factor**2))
-        c1_size = int(1.125 * c4_dims//(factor**3))
+        if fea_aggre:
+            scale_factor = 1.125
+        else:
+            scale_factor = 1.0
+        c3_size = int(scale_factor * c4_dims//(factor**1))
+        c2_size = int(scale_factor * c4_dims//(factor**2))
+        c1_size = int(scale_factor * c4_dims//(factor**3))
 
         self.conv1_4 = nn.Conv2d(c4_size+c3_size, hidden_size, 3, padding=1, bias=False)
         self.bn1_4 = nn.BatchNorm2d(hidden_size)

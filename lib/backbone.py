@@ -357,10 +357,13 @@ class MultiModalSwinTransformer(nn.Module):
                  frozen_stages=-1,
                  use_checkpoint=False,
                  num_heads_fusion=[1, 1, 1, 1],
-                 fusion_drop=0.0
+                 fusion_drop=0.0,
+                 cost_aggre=False,
+                 fea_aggre=False,
                  ):
         super().__init__()
 
+        
         self.pretrain_img_size = pretrain_img_size
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
@@ -407,8 +410,8 @@ class MultiModalSwinTransformer(nn.Module):
                 use_checkpoint=use_checkpoint,
                 num_heads_fusion=num_heads_fusion[i_layer],
                 fusion_drop=fusion_drop,
-                cost_aggre=(i_layer==self.num_layers-1),
-                fea_aggre=(i_layer!=self.num_layers-1),
+                cost_aggre= (cost_aggre and (i_layer==self.num_layers-1)),
+                fea_aggre= (fea_aggre and (i_layer!=self.num_layers-1)),
                 fea_guide_dim=int(embed_dim * 2 ** i_layer/8)
             )
             self.layers.append(layer)
@@ -418,7 +421,7 @@ class MultiModalSwinTransformer(nn.Module):
 
         # add a norm layer for each output
         for i_layer in out_indices:
-            if i_layer != out_indices[-1]:
+            if fea_aggre and i_layer != out_indices[-1]:
                 layer = norm_layer(int(num_features[i_layer]*1.125))
                 num_features[i_layer] = int(num_features[i_layer]*1.125)
             else:

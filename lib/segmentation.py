@@ -96,7 +96,9 @@ def _segm_lavt(pretrained, args):
                                          ape=False, drop_path_rate=0.3, patch_norm=True,
                                          out_indices=out_indices,
                                          use_checkpoint=False, num_heads_fusion=mha,
-                                         fusion_drop=args.fusion_drop
+                                         fusion_drop=args.fusion_drop,
+                                         cost_aggre=args.cost_aggre,
+                                         fea_aggre=args.fea_aggre
                                          )
     if pretrained:
         print('Initializing Multi-modal Swin Transformer weights from ' + pretrained)
@@ -107,7 +109,7 @@ def _segm_lavt(pretrained, args):
 
     model_map = [SimpleDecoding, LAVT]
 
-    classifier = model_map[0](8*embed_dim)
+    classifier = model_map[0](8*embed_dim, fea_aggre=args.fea_aggre)
     base_model = model_map[1]
 
     model = base_model(backbone, classifier)
@@ -175,7 +177,8 @@ def _segm_lavt_one(pretrained, args):
                                          ape=False, drop_path_rate=0.3, patch_norm=True,
                                          out_indices=out_indices,
                                          use_checkpoint=False, num_heads_fusion=mha,
-                                         fusion_drop=args.fusion_drop
+                                         fusion_drop=args.fusion_drop,
+                                         fea_aggre=args.fea_aggre
                                          )
     if pretrained:
         print('Initializing Multi-modal Swin Transformer weights from ' + pretrained)
@@ -186,7 +189,7 @@ def _segm_lavt_one(pretrained, args):
 
     model_map = [SimpleDecoding, LAVTOne]
 
-    classifier = model_map[0](8*embed_dim)
+    classifier = model_map[0](8*embed_dim, fea_aggre=args.fea_aggre)
     base_model = model_map[1]
 
     model = base_model(backbone, classifier, args)

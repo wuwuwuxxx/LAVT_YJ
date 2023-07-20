@@ -56,6 +56,7 @@ class REFER:
             self.IMAGE_DIR = '/home/AI-T1/DatasetPublic/robseg/SSeg_datasets/coco/train2017'
         elif dataset == 'refclef':
             self.IMAGE_DIR = osp.join(data_root, 'images/saiapr_tc-12')
+            self.IMAGE_DIR = '/home/AI-T1/DatasetPublic/RIS/saiapr_tc-12'   
         else:
             print('No refer dataset is called [%s]' % dataset)
             sys.exit()

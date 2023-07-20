@@ -26,22 +26,23 @@
 #       --NCL 0 --max_tokens 20 --start_guide_epoch -1 --epochs 40 --img_size  480 --resume '' --workers 8  > ./models/refcoco+/output_tiny_gt_guide 2>&1 &
 
 
-DATASET=refcocog
+DATASET=refcoco+
 SWIN_TYPE=base
 METHOD=paper
 NCL=0
-MAX_TOKENS=25
+MAX_TOKENS=20
 LOSS_WEIGHT=1.0
 BRANCH=cost_aggre_fea
 MODEL=lavt
 USE_NEW=none
-SPLIT=umd
+SPLIT=unc
 LEN_THRESH=0
 WARMUP=1
-SEED=1994
+SEED=-1
 NAME=${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_WARMUP${WARMUP}
 
 CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12343 train_ris.py \
+      --cost_aggre --fea_aggre \
       --loss_weight ${LOSS_WEIGHT} \
       --classifer_lr 1.0 \
       --method ${METHOD} \

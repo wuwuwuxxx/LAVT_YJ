@@ -71,8 +71,12 @@ def get_parser():
     parser.add_argument("--lr-warmup-epochs", default=1, type=int, help="the number of epochs to warmup (default: 0)")
     parser.add_argument("--lr-warmup-method", default="linear", type=str, help="the warmup method (default: linear)")
     parser.add_argument("--lr-warmup-decay", default=0.01, type=float, help="the decay for lr")
-    return parser
 
+
+    # cost aggre
+    parser.add_argument("--fea_aggre", action="store_true", help="Run or not.")
+    parser.add_argument("--cost_aggre", action="store_true", help="Run or not.")
+    return parser
 
 if __name__ == "__main__":
     parser = get_parser()
