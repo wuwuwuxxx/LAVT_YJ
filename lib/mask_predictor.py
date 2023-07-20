@@ -3,6 +3,24 @@ from torch import nn
 from torch.nn import functional as F
 from collections import OrderedDict
 
+class DoubleConv(nn.Module):
+    """(convolution => [GN] => ReLU) * 2"""
+
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        super().__init__()
+        if not mid_channels:
+            mid_channels = out_channels
+        self.double_conv = nn.Sequential(
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(mid_channels // 16, mid_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(mid_channels // 16, mid_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.double_conv(x)
 
 class SimpleDecoding(nn.Module):
     def __init__(self, c4_dims, factor=2):
@@ -10,9 +28,9 @@ class SimpleDecoding(nn.Module):
 
         hidden_size = c4_dims//factor
         c4_size = c4_dims
-        c3_size = c4_dims//(factor**1)
-        c2_size = c4_dims//(factor**2)
-        c1_size = c4_dims//(factor**3)
+        c3_size = int(1.125 * c4_dims//(factor**1))
+        c2_size = int(1.125 * c4_dims//(factor**2))
+        c1_size = int(1.125 * c4_dims//(factor**3))
 
         self.conv1_4 = nn.Conv2d(c4_size+c3_size, hidden_size, 3, padding=1, bias=False)
         self.bn1_4 = nn.BatchNorm2d(hidden_size)

@@ -32,7 +32,7 @@ METHOD=paper
 NCL=0
 MAX_TOKENS=25
 LOSS_WEIGHT=1.0
-BRANCH=cost_aggre
+BRANCH=cost_aggre_fea
 MODEL=lavt
 USE_NEW=none
 SPLIT=umd
@@ -41,7 +41,7 @@ WARMUP=1
 SEED=1994
 NAME=${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_WARMUP${WARMUP}
 
-CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12342 train_ris.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12343 train_ris.py \
       --loss_weight ${LOSS_WEIGHT} \
       --classifer_lr 1.0 \
       --method ${METHOD} \

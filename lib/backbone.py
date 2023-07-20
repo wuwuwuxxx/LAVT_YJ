@@ -407,7 +407,9 @@ class MultiModalSwinTransformer(nn.Module):
                 use_checkpoint=use_checkpoint,
                 num_heads_fusion=num_heads_fusion[i_layer],
                 fusion_drop=fusion_drop,
-                cost_aggre=(i_layer==self.num_layers-1)
+                cost_aggre=(i_layer==self.num_layers-1),
+                fea_aggre=(i_layer!=self.num_layers-1),
+                fea_guide_dim=int(embed_dim * 2 ** i_layer/8)
             )
             self.layers.append(layer)
 
@@ -416,7 +418,12 @@ class MultiModalSwinTransformer(nn.Module):
 
         # add a norm layer for each output
         for i_layer in out_indices:
-            layer = norm_layer(num_features[i_layer])
+            if i_layer != out_indices[-1]:
+                layer = norm_layer(int(num_features[i_layer]*1.125))
+                num_features[i_layer] = int(num_features[i_layer]*1.125)
+            else:
+                layer = norm_layer(int(num_features[i_layer]*1))
+                                   
             layer_name = f'norm{i_layer}'
             self.add_module(layer_name, layer)
 
@@ -518,7 +525,9 @@ class MMBasicLayer(nn.Module):
                  num_heads_fusion=1,
                  fusion_drop=0.0,
                  cost_aggre=False,
-                 aggregation_dim=1024
+                 aggregation_dim=1024,
+                 fea_aggre=False,
+                 fea_guide_dim=128,
                  ):
         super().__init__()
         self.window_size = window_size
@@ -541,7 +550,16 @@ class MMBasicLayer(nn.Module):
             # encode特征 aggregation层
             self.aggregator = AggregatorLayer(hidden_dim=int(dim/1), appearance_guidance=aggregation_dim)
 
-        
+        self.fea_aggre = False
+        if fea_aggre:
+            self.fea_aggre = fea_aggre
+            self.fea_projection = nn.Sequential(
+                nn.Conv2d(dim, fea_guide_dim, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+            ) 
+
+                       
+
         # build blocks
         self.blocks = nn.ModuleList([
             SwinTransformerBlock(
@@ -626,6 +644,12 @@ class MMBasicLayer(nn.Module):
             x_residual = self.corr_conv1(x_residual)
             fea_guide = self.guidance_projection(g_fea)
             x_residual = self.aggregator(x_residual, fea_guide)
+        if self.fea_aggre:
+            g_fea = self.fea_projection(g_fea)
+            x_residual = rearrange(x_residual, 'b (h w) c -> b c h w', h=H, w=W)
+            x_residual = torch.cat((x_residual, g_fea), dim=1)
+            x_residual = rearrange(x_residual, 'b c h w -> b (h w) c')
+                
 
         if self.downsample is not None:
             x_down = self.downsample(x, H, W)
