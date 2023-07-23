@@ -65,7 +65,7 @@ class REFER:
         tic = time.time()
         if use_new == 'new':
             ref_file = osp.join(self.DATA_DIR, 'new_refs(' + splitBy + ').p')
-        elif use_new == 'new_no_cls':
+        elif use_new == 'new_no_cls' or use_new == 'frz_cls':
             ref_file = osp.join(self.DATA_DIR, 'new_rule_12_refs(' + splitBy + ').p')
         else:
             ref_file = osp.join(self.DATA_DIR, 'refs(' + splitBy + ').p')

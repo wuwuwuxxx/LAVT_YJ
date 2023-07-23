@@ -118,7 +118,7 @@ def evaluate(swin_model, model, data_loader, bert_model, device, dataset_test, a
 
                     embedding = last_hidden_states.permute(0, 2, 1)
                     output = model(image, embedding, l_mask=attentions[:, :, j].unsqueeze(-1), g_fea=g_fea)
-                    output = F.interpolate(output, size=input_shape, mode='bilinear', align_corners=True)
+                    # output = F.interpolate(output, size=input_shape, mode='bilinear', align_corners=True)
                 else:
                     output = model(image, sentences[:, :, j], l_mask=attentions[:, :, j])
 
@@ -223,7 +223,7 @@ def main(args):
     print(args.model)
     single_model = segmentation.__dict__[args.model](pretrained='',args=args)
     checkpoint = torch.load(args.resume, map_location='cpu')
-    single_model.load_state_dict(checkpoint['model'])
+    single_model.load_state_dict(checkpoint['model'], strict=True)
     model = single_model.to(device)
 
     # swin model for embedding guide  只用来提取特征  不做梯度回传
