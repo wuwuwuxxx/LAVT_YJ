@@ -1,4 +1,4 @@
-max_tokens = 28
+
 import os
 # 加载文本
 # pre-process the raw sentence
@@ -31,12 +31,13 @@ def coco_segmentation_to_binary_mask(coco_segmentation):
 
 image_transforms = T.Compose(
     [
-     T.Resize(480),
+     T.Resize((480, 480)),
      T.ToTensor(),
      T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ]
 )
 
+max_tokens = 28
 class args:
     swin_type = 'base'
     window12 = True
@@ -44,10 +45,14 @@ class args:
     fusion_drop = 0.0
     NCL = 1
     ctx_dim = 768
-    save_result = True
+    save_result = False
     result_dir = '/home/yajie/doctor/RIS/LAVT-RIS/shikra_result'
+    cost_aggre = False
+    fea_aggre = False
+    seed = 1994
+    use_swin = False
 
-def predict(image_path, sentence, model, bert_model, device, add_cls=True):
+def predict(image_path, sentence, model, bert_model, swin_model, device, add_cls=True):
     # 加载图像
     img = Image.open(image_path).convert("RGB")
     img_ndarray = np.array(img)  # (orig_h, orig_w, 3); for visualization
@@ -69,7 +74,8 @@ def predict(image_path, sentence, model, bert_model, device, add_cls=True):
     if add_cls:
         # 加classname
         sentence = sentence + ' ' +  ' '.join(["X"] * 1) + ' ' + cls_name
-    
+
+    # sentence = sentence + '. ' +  'It is a ' + cls_name
     # 编码sentence
     sentence_tokenized = tokenizer.encode(text=sentence, add_special_tokens=True)
     sentence_tokenized = sentence_tokenized[:max_tokens]  # if the sentence is longer than 20, then this truncates it to 20 words
@@ -89,7 +95,10 @@ def predict(image_path, sentence, model, bert_model, device, add_cls=True):
         last_hidden_states[0][temp_len-1 : temp_len] = model.ctx
     embedding = last_hidden_states.permute(0, 2, 1)
 
-    output = model(img, embedding, l_mask=attention_mask.unsqueeze(-1))
+    g_fea = None
+    if swin_model != None:
+        g_fea = swin_model(img)
+    output = model(img, embedding, l_mask=attention_mask.unsqueeze(-1), g_fea=g_fea)
     output = output.argmax(1, keepdim=True)  # (1, 1, 480, 480)
     output = F.interpolate(output.float(), (original_h, original_w))  # 'nearest'; resize to the original image size
     output = output.squeeze()  # (orig_h, orig_w)
@@ -110,6 +119,8 @@ def load_model():
     single_model = segmentation.__dict__['lavt'](pretrained='', args=args)
     single_model.to(device)
     weights = '/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/refcocog_extract_subject_base_paper_lavt_prompt1_loss1.0_umd_new_no_cls_28_rule/model_best.pth'
+    # weights = '/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/refcocog_cost_aggre_fea_base_paper_lavt_prompt0_loss1.0_umd_frz_cls_26_WARMUP1/model_best.pth'
+    # weights = '/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/gref_umd.pth'
     checkpoint = torch.load(weights, map_location='cpu')
     single_model.load_state_dict(checkpoint['model'])
     model = single_model.to(device)
@@ -120,10 +131,17 @@ def load_model():
     single_bert_model.load_state_dict(checkpoint['bert_model'])
     bert_model = single_bert_model.to(device)
 
+
+    swin_checkpoint = 'skip'
+    swin_model = segmentation.__dict__['swin'](pretrained=swin_checkpoint,
+                                              args=args)
+    swin_model.to(device)
+
     model.eval()
     bert_model.eval()
+    swin_model.eval()
 
-    return model, bert_model, device
+    return model, bert_model, device, swin_model
 
 
 
@@ -185,13 +203,23 @@ def computeIoU(pred_seg, gd_seg):
     return I, U
 
 import cv2
+import random
 if __name__ == '__main__':
+
+    if args.seed != -1:
+        torch.manual_seed(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+
 
     os.makedirs(args.result_dir, exist_ok=True)
     # 加载模型
-    model, bert_model, device = load_model()
+    model, bert_model, device, swin_model = load_model()
+    if not args.use_swin:
+        swin_model = None
 
-    file_name = '/home/yajie/doctor/RIS/test/graspnet/REC_garspnet_lavt.jsonl'
+
+    file_name = '/home/yajie/doctor/RIS/test/graspnet/REC_garspnet_lavt_test_seen.jsonl'
     json_data = load_data_from_jsonl(file_name)
 
     cum_I, cum_U = 0, 0
@@ -205,7 +233,7 @@ if __name__ == '__main__':
         mask = mask_util.decode(coco)
         # mask = mask * 255
         # cv2.imwrite('gt.png', mask.astype(np.uint8))
-        pred = predict(img_path, sentence, model, bert_model, device, add_cls=False)
+        pred = predict(img_path, sentence, model, bert_model, swin_model, device, add_cls=True)
 
         I, U = computeIoU(pred, mask)
         if U == 0:

@@ -192,9 +192,13 @@ def main(args):
 
 
     # swin model for embedding guide  只用来提取特征  不做梯度回传
-    swin_model = segmentation.__dict__['swin'](pretrained=args.pretrained_swin_weights,
+    swin_model = segmentation.__dict__['swin'](pretrained=args.swin_weights,
                                               args=args)
+    if args.swin_weights!='':
+        swin_model.load_state_dict(torch.load(args.swin_weights), strict=False)
     swin_model.cuda()
+
+    single_swin_model = swin_model
     if args.distributed:
         swin_model = torch.nn.parallel.DistributedDataParallel(swin_model, device_ids=[args.local_rank], find_unused_parameters=True)
 
@@ -310,7 +314,10 @@ def main(args):
 
     checkpoint_dir = os.path.join(args.output_dir, args.model_id)
     os.makedirs(checkpoint_dir, exist_ok=True)
-    # training loops
+    # save swin
+    dict_to_save = {'model': single_swin_model.state_dict()}
+    utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
+                                                    'swin_model.pth'))
     for epoch in range(max(0, resume_epoch+1), args.epochs):
         if args.distributed:
             data_loader.sampler.set_epoch(epoch)
@@ -320,8 +327,8 @@ def main(args):
         overallIoU, overallIoU_l, overallIoU_l_s = evaluate(swin_model, model, data_loader_test, bert_model, ctx, args)
         # print('Average object IoU {}'.format(iou))
         # print('Overall IoU {}'.format(overallIoU))
-        save_checkpoint = (best_oIoU < overallIoU) 
-        save_checkpoint_l = (best_oIoU_l < overallIoU_l) 
+        save_checkpoint = (best_oIoU < overallIoU) and (epoch > 20 or epoch == 0)
+        save_checkpoint_l = False#(best_oIoU_l < overallIoU_l) and epoch > 20
         # save_checkpoint = True
         if save_checkpoint:
             print('Better epoch: {}\n'.format(epoch))
@@ -335,7 +342,7 @@ def main(args):
                                 'lr_scheduler': lr_scheduler.state_dict()}
 
             utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
-                                                            'model_best.pth'.format(epoch)))
+                                                            'model_best_{}.pth'.format(epoch)))
             best_oIoU = overallIoU
 
 
@@ -351,7 +358,7 @@ def main(args):
                                 'lr_scheduler': lr_scheduler.state_dict()}
 
             utils.save_on_master(dict_to_save, os.path.join(checkpoint_dir,
-                                                            'model_best_l.pth'.format(epoch)))
+                                                            'model_best_l_{}.pth.pth'.format(epoch)))
             best_oIoU_l = overallIoU_l
 
     # summarize

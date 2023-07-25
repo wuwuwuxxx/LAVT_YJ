@@ -30,19 +30,19 @@ DATASET=refcocog
 SWIN_TYPE=base
 METHOD=paper
 NCL=0
-MAX_TOKENS=26
+MAX_TOKENS=20
 LOSS_WEIGHT=1.0
-BRANCH=cost_aggre_fea
+BRANCH=cost_aggre
 MODEL=lavt
-USE_NEW=frz_cls
+USE_NEW=none
 SPLIT=umd
 LEN_THRESH=0
 WARMUP=1
 SEED=1994
-NAME=${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_WARMUP${WARMUP}_SEED${SEED}
+NAME=${BRANCH}_${SWIN_TYPE}_${METHOD}_${MODEL}_prompt${NCL}_loss${LOSS_WEIGHT}_${SPLIT}_${USE_NEW}_${MAX_TOKENS}_WARMUP${WARMUP}_SEED${SEED}_mae
 
-CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12348 train_ris.py \
-      --cost_aggre --fea_aggre \
+CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --nproc_per_node 4 --master_port 12347 train_ris.py \
+      --cost_aggre  \
       --loss_weight ${LOSS_WEIGHT} \
       --classifer_lr 1.0 \
       --method ${METHOD} \
@@ -54,6 +54,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --npro
       --wd 1e-2 \
       --use_new ${USE_NEW} \
       --swin_type ${SWIN_TYPE} \
+      --swin_weights '/home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/simmim_pretrain_swin_base_img192_window6_new.pth' \
       --pretrained_swin_weights /home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/swin_base_patch4_window12_384_22k.pth \
       --NCL ${NCL} --max_tokens ${MAX_TOKENS} \
       --epochs 40 --img_size 480 \
@@ -62,5 +63,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3  nohup python -u -m torch.distributed.launch --npro
       --len_thresh ${LEN_THRESH} \
       --seed ${SEED} > ./models/${DATASET}/output_${NAME}  2>&1 &
 
-
+      #--pretrained_swin_weights /home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/swin_base_patch4_window12_384_22k.pth \
 

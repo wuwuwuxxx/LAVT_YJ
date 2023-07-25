@@ -493,7 +493,10 @@ class MultiModalSwinTransformer(nn.Module):
         outs = []
         for i in range(self.num_layers):
             layer = self.layers[i]
-            x_out, H, W, x, Wh, Ww = layer(x, Wh, Ww, l, l_mask, g_fea[i])
+            if g_fea!= None:
+                x_out, H, W, x, Wh, Ww = layer(x, Wh, Ww, l, l_mask, g_fea[i])
+            else:
+                x_out, H, W, x, Wh, Ww = layer(x, Wh, Ww, l, l_mask)
 
             if i in self.out_indices:
                 norm_layer = getattr(self, f'norm{i}')
@@ -551,6 +554,7 @@ class MMBasicLayer(nn.Module):
                 nn.ReLU(),
             ) 
             # encode特征 aggregation层
+            print('light cost')
             self.aggregator = AggregatorLayer(hidden_dim=int(dim/1), appearance_guidance=aggregation_dim)
 
         self.fea_aggre = False
@@ -600,7 +604,7 @@ class MMBasicLayer(nn.Module):
         else:
             self.downsample = None
 
-    def forward(self, x, H, W, l, l_mask, g_fea):
+    def forward(self, x, H, W, l, l_mask, g_fea=None):
         """ Forward function.
 
         Args:
@@ -646,6 +650,7 @@ class MMBasicLayer(nn.Module):
             x_residual = rearrange(x_residual, 'b (h w) c -> b c h w', h=H, w=W)
             x_residual = self.corr_conv1(x_residual)
             fea_guide = self.guidance_projection(g_fea)
+            # fea_guide = g_fea.detach()
             x_residual = self.aggregator(x_residual, fea_guide)
         if self.fea_aggre:
             g_fea = self.fea_projection(g_fea)
@@ -1037,6 +1042,8 @@ class SwinTransformer(nn.Module):
             pretrained (str, optional): Path to pre-trained weights.
                 Defaults to None.
         """
+        if pretrained == 'skip':
+            return 
 
         def _init_weights(m):
             if isinstance(m, nn.Linear):

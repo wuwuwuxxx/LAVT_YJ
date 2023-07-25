@@ -5,10 +5,10 @@ def get_parser():
     parser = argparse.ArgumentParser(description='LAVT training and testing')
     parser.add_argument('--amsgrad', action='store_true',
                         help='if true, set amsgrad to True in an Adam or AdamW optimizer.')
-    parser.add_argument('-b', '--batch-size', default=2, type=int)
+    parser.add_argument('-b', '--batch-size', default=1, type=int)
     parser.add_argument('--bert_tokenizer', default='bert-base-uncased', help='BERT tokenizer')
     parser.add_argument('--ck_bert', default='bert-base-uncased', help='pre-trained BERT weights')
-    parser.add_argument('--dataset', default='refcocog', help='refcoco, refcoco+, or refcocog')
+    parser.add_argument('--dataset', default='refclef', help='refcoco, refcoco+, or refcocog')
     parser.add_argument('--ddp_trained_weights', action='store_true',
                         help='Only needs specified when testing,'
                              'whether the weights to be loaded are from a DDP-trained model')
@@ -26,13 +26,14 @@ def get_parser():
     parser.add_argument('--output-dir', default='./checkpoints/', help='path where to save checkpoint weights')
     parser.add_argument('--pin_mem', action='store_true',
                         help='If true, pin memory when using the data loader.')
-    parser.add_argument('--pretrained_swin_weights', default='',
-                        help='path to pre-trained Swin backbone weights')
+    parser.add_argument('--pretrained_swin_weights', default='')#/home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/swin_base_patch4_window12_384_22k.pth', help='path to pre-trained Swin backbone weights')
+    parser.add_argument('--swin_weights', default='')
     parser.add_argument('--print-freq', default=10, type=int, help='print frequency')
     parser.add_argument('--refer_data_root', default='/home/AI-T1/DatasetPublic/RIS/refer/data', help='REFER dataset root directory')
-    parser.add_argument('--resume', default='', help='resume from checkpoint')
-    parser.add_argument('--split', default='train', help='only used when testing')
-    parser.add_argument('--splitBy', default='google', help='change to umd or google when the dataset is G-Ref (RefCOCOg)')
+    parser.add_argument('--resume', default='/home/yajie/doctor/RIS/LAVT-RIS/checkpoints/refcocog_cost_aggre_fea_base_paper_lavt_prompt0_loss1.0_umd_frz_cls_26_WARMUP1/model_best_ce.pth')
+    parser.add_argument('--swin_resume', default='/home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/simmim_pretrain_swin_base_img192_window6_new.pth')
+    parser.add_argument('--split', default='val', help='only used when testing')
+    parser.add_argument('--splitBy', default='unc', help='change to umd or google when the dataset is G-Ref (RefCOCOg)')
     parser.add_argument('--swin_type', default='base',
                         help='tiny, small, base, or large variants of the Swin Transformer')
     parser.add_argument('--wd', '--weight-decay', default=1e-2, type=float, metavar='W', help='weight decay',
@@ -58,11 +59,11 @@ def get_parser():
     
 
     parser.add_argument('--method', default='paper', type=str, help='method use')
-    parser.add_argument('--use_new', default='none', type=str, help='method use')
+    parser.add_argument('--use_new', default='frz_cls', type=str, help='method use')
     parser.add_argument('--len_thresh', default=0, type=int, help='classifer lr weight')
 
     # seed
-    parser.add_argument("--seed", default=531, type=int, help="min learning rate for polylr")
+    parser.add_argument("--seed", default=1994, type=int, help="min learning rate for polylr")
 
     # lr
     parser.add_argument("--lr", default=0.00005, type=float, help="initial learning rate")

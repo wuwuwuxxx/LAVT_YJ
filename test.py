@@ -18,7 +18,7 @@ from PIL import Image
 import torch.nn.functional as F
 
 save_result = False
-save_dir = './result/'
+save_dir = './result_7/'
 os.makedirs(save_dir, exist_ok=True)
 
 def get_dataset(image_set, transform, args):
@@ -88,6 +88,8 @@ def evaluate(swin_model, model, data_loader, bert_model, device, dataset_test, a
     mean_sIou, mean_lIou = [], []
     cum_s_I, cum_s_U = 0, 0
     cum_l_I, cum_l_U = 0, 0
+
+
     with torch.no_grad():
         for data in metric_logger.log_every(data_loader, 100, header):
             image, target, sentences, attentions, sentences_len, _, _, _, _, index= data
@@ -138,24 +140,24 @@ def evaluate(swin_model, model, data_loader, bert_model, device, dataset_test, a
                     num_short += 1
                 if save_result:
                     if this_iou >= 0 and abs(temp_len - 1) > args.len_thresh:
-                        # this_image = scale_img_back(image) * 255
-                        # this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
-                        # result = overlay_davis(this_image, output_mask.squeeze())
-                        # result_gt = overlay_davis(this_image, target.squeeze())
-                        # result = Image.fromarray(result)
-                        # result_gt = Image.fromarray(result_gt)
+                        this_image = scale_img_back(image) * 255
+                        this_image = this_image.cpu().numpy().squeeze().astype(np.uint8)
+                        result = overlay_davis(this_image, output_mask.squeeze())
+                        result_gt = overlay_davis(this_image, target.squeeze())
+                        result = Image.fromarray(result)
+                        result_gt = Image.fromarray(result_gt)
 
                         this_ref_id = dataset_test.ref_ids[index]
                         this_img_id = dataset_test.refer.getImgIds(this_ref_id)
                         this_img = dataset_test.refer.Imgs[this_img_id[0]]
                         image_name = this_img['file_name']
                         this_sentences = dataset_test.refer.Refs[this_ref_id]['sentences'][j]['sent']
-                        f_sent.write(image_name + '\t' +  this_sentences + '\t' +  str(this_iou) + '\n')
+                        # f_sent.write(image_name + '\t' +  this_sentences + '\t' +  str(this_iou) + '\n')
 
-                        # result_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
-                        # resultgt_name = image_name[:-4] + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
-                        # result.save(os.path.join(save_dir, result_name))
-                        # result_gt.save(os.path.join(save_dir, resultgt_name))
+                        result_name = image_name[:-4].replace('/', '_') + '_'.join(this_sentences.replace('/', '').split(' ')) + '.png'
+                        resultgt_name = image_name[:-4].replace('/', '_') + '_'.join(this_sentences.replace('/', '').split(' ')) + 'gt.png'
+                        result.save(os.path.join(save_dir, result_name))
+                        result_gt.save(os.path.join(save_dir, resultgt_name))
                         
                         
                 cum_I += I
@@ -170,7 +172,8 @@ def evaluate(swin_model, model, data_loader, bert_model, device, dataset_test, a
                     eval_seg_iou = eval_seg_iou_list[n_eval_iou]
                     seg_correct[n_eval_iou] += (this_iou >= eval_seg_iou)
                 seg_total += 1
-
+            # if seg_total > 100:
+            #     break
             # del image, target, sentences, attentions, output, output_mask
             # if bert_model is not None:
             #     del last_hidden_states, embedding
@@ -213,23 +216,55 @@ def computeIoU(pred_seg, gd_seg):
 
     return I, U
 
-
+import random
 def main(args):
+
+    if args.seed != -1:
+        torch.manual_seed(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+
     device = torch.device(args.device)
-    dataset_test, _ = get_dataset(args.split, get_transform(args=args), args)
-    test_sampler = torch.utils.data.SequentialSampler(dataset_test)
-    data_loader_test = torch.utils.data.DataLoader(dataset_test, batch_size=1,
-                                                   sampler=test_sampler, num_workers=args.workers)
+
+    # swin model for embedding guide  只用来提取特征  不做梯度回传
+    swin_model = segmentation.__dict__['swin'](pretrained=args.pretrained_swin_weights,
+                                              args=args)
+    checkpoint = torch.load(args.swin_resume, map_location='cpu')
+    # new_ckpt = {}
+    # for key in list(checkpoint['model'].keys()):
+    #     if key.startswith('encoder.'):
+    #         new_key = key.replace('encoder.', '')
+    #         if 'relative_position_bias_table' in new_key:
+    #             raw_tensor = checkpoint['model'][key].reshape(1, 11, 11, -1).permute(0, 3, 1, 2)
+    #             new_tensor = F.interpolate(raw_tensor, (23, 23))
+    #             new_tensor = new_tensor.permute(0, 2, 3, 1).reshape(23*23, -1)
+    #             new_ckpt[new_key] = new_tensor
+    #             continue
+    #         elif 'relative_position_index' in new_key:
+    #             raw_tensor = checkpoint['model'][key].unsqueeze(0).unsqueeze(0).float()
+    #             new_tensor = F.interpolate(raw_tensor, scale_factor=(4, 4)).long()
+    #             new_tensor = new_tensor.squeeze()
+    #             new_ckpt[new_key] = new_tensor
+    #             continue
+    #         new_ckpt[new_key] = checkpoint['model'][key]
+    # torch.save(new_ckpt, '/home/yajie/doctor/RIS/LAVT-RIS/pretrained_weights/simmim_pretrain_swin_base_img192_window6_new.pth')
+
+    # swin_model.load_state_dict(checkpoint, strict=False)
+    swin_model.cuda()
+
+
     print(args.model)
     single_model = segmentation.__dict__[args.model](pretrained='',args=args)
     checkpoint = torch.load(args.resume, map_location='cpu')
     single_model.load_state_dict(checkpoint['model'], strict=True)
     model = single_model.to(device)
 
-    # swin model for embedding guide  只用来提取特征  不做梯度回传
-    swin_model = segmentation.__dict__['swin'](pretrained=args.pretrained_swin_weights,
-                                              args=args)
-    swin_model.cuda()
+
+    dataset_test, _ = get_dataset(args.split, get_transform(args=args), args)
+    test_sampler = torch.utils.data.SequentialSampler(dataset_test)
+    data_loader_test = torch.utils.data.DataLoader(dataset_test, batch_size=1,
+                                                   sampler=test_sampler, num_workers=args.workers)
+
 
 
     if args.model != 'lavt_one':
